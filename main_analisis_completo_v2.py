@@ -109,12 +109,17 @@ CONSTANTS = {
     'a_decel': 2.0,       # Desaceleración (m/s²) - para calcular tiempo de frenado
     'a_accel': 0.5,       # Aceleración (m/s²) - para calcular tiempo de arranque
     't_maniobra': 90,     # Tiempo mínimo para cambio de conductor (segundos) - Antes 180
+    't_maniobra_stationary': 15, # Tiempo de maniobra con vehiculo practicamente detenido
+    't_maniobra_slow': 45,       # Tiempo de maniobra con velocidad muy baja
     'k': 0.1,             # Suavizado de curva logística (transición gradual)
     
     # --- COMPARACIÓN VISUAL (FRAME A FRAME) ---
     'visual_match': 0.5,   # Umbral para considerar misma persona (comparación estricta)
     'visual_diff': 1.0,    # Umbral confirmación (1.0 = todo no-match va al Turco)
     'gray_margin': 0.15,   # Margen de zona gris (entre match y diff)
+    'gray_zone_high': 0.73,         # Distancia alta en zona gris con fisica favorable
+    'gray_zone_medium': 0.63,       # Distancia media en zona gris con fisica favorable
+    'gray_zone_medium_high': 0.78,  # Distancia alta en zona gris con fisica dudosa
     
     # --- GESTIÓN DE IDs ---
     'id_reuse_match_threshold': 0.7, # Umbral relajado para reutilizar IDs (P95 intra-conductor)
@@ -164,7 +169,6 @@ def load_emb(emb_str):
     except Exception as e:
         # Si falla, pues ni modo, retornamos None
         return None
-
 def process_asset_group(df_asset, asset_name="Unknown"):
     """
     Procesa un viaje/asset completo y detecta cambios de conductor.
@@ -338,11 +342,11 @@ def process_asset_group(df_asset, asset_name="Unknown"):
         # Usamos la velocidad máxima entre ambos frames como referencia
         v_max = max(v_prev, v_curr)
         if v_max < 1.0:  # < 3.6 km/h (prácticamente detenido)
-            t_maniobra_dinamico = 15  # 15 segundos para cambio con vehículo detenido (Antes 30)
+            t_maniobra_dinamico = CONSTANTS['t_maniobra_stationary']
         elif v_max < 5.0:  # < 18 km/h (velocidad muy baja, casi detenido)
-            t_maniobra_dinamico = 45  # 45 segundos (Antes 60)
+            t_maniobra_dinamico = CONSTANTS['t_maniobra_slow']
         else:  # Velocidad normal/alta
-            t_maniobra_dinamico = t_maniobra  # 90 segundos (Antes 180)
+            t_maniobra_dinamico = t_maniobra
         
         t_req = t_frenado + t_maniobra_dinamico + t_arranque  # Tiempo total requerido
         t_sobra = delta_t - t_req            # Tiempo sobrante (puede ser negativo)
@@ -406,12 +410,12 @@ def process_asset_group(df_asset, asset_name="Unknown"):
                 if P_fisica > CONSTANTS['phys_possible']:
                     # Física muy posible (>0.85) + zona media visual
                     # Entre más alta la distancia visual, más sospechoso
-                    if main_distance > 0.73:
+                    if main_distance > CONSTANTS['gray_zone_high']:
                         # Zona media-alta visual + física posible = muy sospechoso
                         decision = 'POSIBLE_CAMBIO'
                         requiere_ver = 'SI'
                         explanation = f'Zona media-alta ({main_distance:.3f}), física posible (P={P_fisica:.2f})'
-                    elif main_distance > 0.63:
+                    elif main_distance > CONSTANTS['gray_zone_medium']:
                         # Zona media visual + física posible = sospechoso
                         decision = 'POSIBLE_CAMBIO'
                         requiere_ver = 'SI'
@@ -423,7 +427,7 @@ def process_asset_group(df_asset, asset_name="Unknown"):
                 
                 elif P_fisica > CONSTANTS['phys_impossible']:
                     # Física dudosa (0.3-0.85)
-                    if main_distance > 0.78:
+                    if main_distance > CONSTANTS['gray_zone_medium_high']:
                         # Visual muy diferente + física dudosa = revisar
                         decision = 'POSIBLE_CAMBIO'
                         requiere_ver = 'SI'

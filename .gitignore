@@ -1,2 +1,5 @@
 __pycache__
 random_trips_data_2026_04.csv
+*.jpeg
+random_trips_data_2026_04.pre_gt_fix_round3.bak.csv
+/miss_review_images_v2random_trips_data_2026_04.pre_gt_fix_round3.bak.csv
