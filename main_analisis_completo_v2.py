@@ -51,7 +51,7 @@ RESULTADOS FINALES (101 cambios reales en dataset de 6,153 imágenes):
 
 """
 
-import os, json, math, shutil
+import os, json, math
 import pandas as pd
 import numpy as np
 from openpyxl import load_workbook
@@ -62,10 +62,7 @@ from rich.panel import Panel
 from rich import print as rprint
 
 # --- CONFIGURACIÓN DE ARCHIVOS ---
-INPUT_FILE = "/home/capistran/Documents/viajes_analisis_streamax_v1/face_detection_varios_streamax_con_datos.xlsx"
-PARQUET_FILE = "/home/capistran/Documents/embedding_extractor/embeddings_varios_asset_streamax/adaface/embeddings.parquet"
-IMAGE_SOURCE_BASE = "/home/capistran/Documents/download_gs_path/output_images/"
-EXPORT_BASE_DIR = "/home/capistran/Documents/viajes_analisis_streamax_v2/personas_export"
+INPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "trips_data_enriched.csv")
 
 # --- CONFIGURACIÓN Y PARÁMETROS ---
 # =============================================================================
@@ -251,6 +248,9 @@ def process_asset_group(df_asset, asset_name="Unknown"):
         'ASSET_ID': asset_name,
         'PERSONA_ID': current_person_id,
         'DRIVER_ID': first_row.get('driver_id', 'N/A'),
+        'IDENTITY_ID': first_row.get('identity_id', ''),
+        'GS_PATH': first_row.get('gs_path', ''),
+        'EMPTY_CABIN': first_row.get('empty_cabin', ''),
         'ARCHIVO': first_row.get(img_col, 'N/A'),
         'SOURCE_IMAGE': first_row.get('source_image', 'N/A'),
         'TIMESTAMP': first_row.get('timestamp', 'N/A'),
@@ -470,6 +470,9 @@ def process_asset_group(df_asset, asset_name="Unknown"):
             'ASSET_ID': asset_name,
             'PERSONA_ID': current_person_id,
             'DRIVER_ID': cur.get('driver_id', 'N/A'),
+            'IDENTITY_ID': cur.get('identity_id', ''),
+            'GS_PATH': cur.get('gs_path', ''),
+            'EMPTY_CABIN': cur.get('empty_cabin', ''),
             'ARCHIVO': cur.get(img_col, 'N/A'),
             'SOURCE_IMAGE': cur.get('source_image', 'N/A'),
             'TIMESTAMP': cur.get('timestamp', 'N/A'),
@@ -484,66 +487,35 @@ def process_asset_group(df_asset, asset_name="Unknown"):
         
     return records
 
-def main():
-    # Generamos el nombre de salida automáticamente
-    base, ext = os.path.splitext(INPUT_FILE)
-    OUTPUT_FILE = f"{base}_resultados{ext}"
+def load_and_process(input_file=None):
+    """Carga el CSV de entrada y corre el pipeline de detección por viaje.
 
-    print(f"🚀 INICIANDO ANÁLISIS")
-    print(f"📂 Entrada: {INPUT_FILE}")
-    print(f"💾 Salida:  {OUTPUT_FILE}")
-    print("-" * 40)
+    Devuelve el DataFrame de salida (out_df) con una fila por frame procesado,
+    o None si no se pudo cargar o no salió ningún registro. Reutilizable por
+    main() y por scripts auxiliares (ej. reporte HTML de misses).
+    """
+    input_file = input_file or INPUT_FILE
 
-    # 1. Cargar el Excel
+    # 1. Cargar el CSV
     try:
-        df = pd.read_excel(INPUT_FILE)
-        print(f"✅ Excel cargado: {len(df)} filas.")
+        df = pd.read_csv(input_file)
+        print(f"✅ CSV cargado: {len(df)} filas.")
     except Exception as e:
-        print(f"❌ Error cargando Excel: {e}")
-        return
-
-    # 1.0.1 Limpieza de columnas duplicadas
-    # Si el Excel ya trae 'embedding', lo borramos para que no choque con el del Parquet
-    if 'embedding' in df.columns:
-        df.drop(columns=['embedding'], inplace=True)
-
-    # 1.1 Cargar el Parquet de Embeddings
-    try:
-        print(f"📂 Cargando embeddings desde Parquet: {PARQUET_FILE}")
-        df_emb = pd.read_parquet(PARQUET_FILE)
-        
-        # ELIMINAR DUPLICADOS EN PARQUET
-        # Algunos registros pueden estar duplicados en el origen, los limpiamos
-        if 'image_name' in df_emb.columns:
-            n_pre = len(df_emb)
-            df_emb = df_emb.drop_duplicates('image_name')
-            n_post = len(df_emb)
-            if n_pre != n_post:
-                print(f"   🧹 Limpieza Parquet: {n_pre - n_post} duplicados eliminados.")
-                
-        # El parquet tiene 'image_name' (sin extension) y 'embedding'
-        
-        # En el Excel, 'image_file' tiene la extension .jpeg
-        # Creamos una columna temporal para el join
-        df['join_key'] = df['image_file'].str.replace('.jpeg', '', regex=False)
-        
-        # Merge
-        df = df.merge(df_emb, left_on='join_key', right_on='image_name', how='left')
-        
-        # Limpieza
-        if 'join_key' in df.columns: df.drop(columns=['join_key'], inplace=True)
-        if 'image_name' in df.columns: df.drop(columns=['image_name'], inplace=True)
-        
-        print(f"✅ Embeddings vinculados: {len(df)} filas resultantes.")
-    except Exception as e:
-        print(f"❌ Error cargando/vinculando Parquet: {e}")
-        return
+        print(f"❌ Error cargando CSV: {e}")
+        return None
 
     # Validar que traiga embeddings
     if 'embedding' not in df.columns:
         print("❌ ERROR CRÍTICO: No hay columna 'embedding'.")
         print("   Sin embeddings no hay magia.")
-        return
+        return None
+
+    # Quedarnos solo con filas que traen embedding
+    df = df[df['embedding'].notna() & (df['embedding'].astype(str).str.strip() != '')]
+    print(f"✅ Filas con embedding válido: {len(df)}.")
+
+    # Generar 'image_file' esperado por process_asset_group: asset_id + "_" + nombre del archivo
+    df['image_file'] = df['asset_id'].astype(str) + "_" + df['gs_path'].apply(lambda p: os.path.basename(str(p)))
 
     all_records = []
 
@@ -560,13 +532,71 @@ def main():
         results = process_asset_group(df, "Single_Asset")
         all_records.extend(results)
 
-    # 3. Guardar Resultados
     if not all_records:
         print("⚠️ No salió nada. ¿Filtros muy agresivos o datos vacíos?")
+        return None
+
+    return pd.DataFrame(all_records)
+
+
+def compute_gt_changes(out_df):
+    """Calcula los cambios reales (GT) usando IDENTITY_ID, exigiendo que la
+    nueva identidad se sostenga >= 2 frames (para ignorar parpadeos de 1 frame).
+
+    Devuelve una lista de dicts, uno por cada cambio GT encontrado:
+      asset_id, prev_identity, new_identity, cur_start (posición dentro del
+      grupo del asset, 0-indexed), prev_run_end (última posición de la
+      identidad previa), detected (bool).
+    """
+    changes = []
+    for asset_id, group in out_df.groupby('ASSET_ID', sort=False):
+        identity = group['IDENTITY_ID'].astype(str).str.strip().tolist()
+        decision = group['DECISION_SISTEMA'].tolist()
+        n = len(identity)
+
+        # Run-length encode la secuencia de identidades: (valor, inicio, fin_inclusive)
+        runs = []
+        i = 0
+        while i < n:
+            j = i
+            while j + 1 < n and identity[j + 1] == identity[i]:
+                j += 1
+            runs.append((identity[i], i, j))
+            i = j + 1
+
+        # Solo cuentan como "estado real" las identidades válidas sostenidas >= 2 frames
+        valid_runs = [r for r in runs if r[0] not in ('', 'nan') and (r[2] - r[1] + 1) >= 2]
+
+        for k in range(1, len(valid_runs)):
+            prev_val, _, prev_end = valid_runs[k - 1]
+            cur_val, cur_start, _ = valid_runs[k]
+            if prev_val != cur_val:
+                detected = decision[cur_start] in ('POSIBLE_CAMBIO', 'CAMBIO_CONFIRMADO')
+                changes.append({
+                    'asset_id': asset_id,
+                    'prev_identity': prev_val,
+                    'new_identity': cur_val,
+                    'cur_start': cur_start,
+                    'prev_run_end': prev_end,
+                    'detected': detected,
+                })
+    return changes
+
+
+def main():
+    # Generamos el nombre de salida automáticamente
+    base, ext = os.path.splitext(INPUT_FILE)
+    OUTPUT_FILE = f"{base}_resultados.xlsx"
+
+    print(f"🚀 INICIANDO ANÁLISIS")
+    print(f"📂 Entrada: {INPUT_FILE}")
+    print(f"💾 Salida:  {OUTPUT_FILE}")
+    print("-" * 40)
+
+    out_df = load_and_process(INPUT_FILE)
+    if out_df is None:
         return
 
-    out_df = pd.DataFrame(all_records)
-    
     # --- AGREGAR ALERTAS DE IDs SOSPECHOSOS ---
     # Columnas para flagging de IDs problemáticos
     out_df['ID_FLAG'] = ''
@@ -679,6 +709,57 @@ def main():
     console.print("\n")
     console.print(table_global)
 
+    # --- MÉTRICAS DE DETECCIÓN (GT = identity_id del CSV) ---
+    # GT: hay cambio real cuando la nueva identidad se sostiene al menos 2 frames seguidos
+    # (evita contar parpadeos de 1 frame como cambio real).
+    gt_changes = compute_gt_changes(out_df)
+    gt_total = len(gt_changes)
+    gt_detected = sum(1 for c in gt_changes if c['detected'])
+
+    tp_positions_by_asset = {}
+    for c in gt_changes:
+        if c['detected']:
+            tp_positions_by_asset.setdefault(c['asset_id'], set()).add(c['cur_start'])
+
+    fp_count = 0
+    fp_confirmado = 0
+    fp_posible = 0
+    for asset_id, group in out_df.groupby('ASSET_ID', sort=False):
+        decision = group['DECISION_SISTEMA'].tolist()
+        tp_positions = tp_positions_by_asset.get(asset_id, set())
+        for pos, dec in enumerate(decision):
+            if dec in ('POSIBLE_CAMBIO', 'CAMBIO_CONFIRMADO') and pos not in tp_positions:
+                fp_count += 1
+                if dec == 'CAMBIO_CONFIRMADO':
+                    fp_confirmado += 1
+                else:
+                    fp_posible += 1
+
+    recall_pct = (gt_detected / gt_total * 100) if gt_total else 0.0
+    precision_pct = (gt_detected / (gt_detected + fp_count) * 100) if (gt_detected + fp_count) else 0.0
+    # Precisión "estricta": solo penaliza CAMBIO_CONFIRMADO (compromiso firme del
+    # sistema). Los POSIBLE_CAMBIO son solo advertencias para que el Turco revise
+    # y muchas veces terminan resolviéndose como MISMO_CONDUCTOR, así que no
+    # deberían pesar igual que un cambio confirmado incorrecto.
+    precision_estricta_pct = (gt_detected / (gt_detected + fp_confirmado) * 100) if (gt_detected + fp_confirmado) else 0.0
+
+    table_metrics = Table(title="🎯 MÉTRICAS DE DETECCIÓN (vs identity_id, sostenida >= 2 frames)", show_header=True, header_style="bold cyan")
+    table_metrics.add_column("Métrica", style="cyan", no_wrap=True)
+    table_metrics.add_column("Valor", justify="right", style="green")
+    table_metrics.add_column("Comentario", style="italic")
+
+    table_metrics.add_row("Cambios Reales (GT)", str(gt_total), "Cambios de identity_id sostenidos >= 2 frames")
+    table_metrics.add_row("Cambios Detectados", str(gt_detected), "GT con alerta del sistema en la misma fila")
+    table_metrics.add_row("Recall", f"{recall_pct:.2f}%", "% de cambios reales detectados")
+    table_metrics.add_row("Falsos Positivos (total)", str(fp_count), "Alertas que no coinciden con un cambio real")
+    table_metrics.add_row("  ↳ Falsos POSIBLE_CAMBIO", str(fp_posible), "Solo advertencia, no compromiso firme")
+    table_metrics.add_row("  ↳ Falsos CAMBIO_CONFIRMADO", str(fp_confirmado), "Compromiso firme incorrecto (más grave)")
+    table_metrics.add_row("Precisión", f"{precision_pct:.2f}%", "% de alertas (todas) que fueron cambio real")
+    table_metrics.add_row("Precisión Estricta", f"{precision_estricta_pct:.2f}%", "Solo penaliza CAMBIO_CONFIRMADO incorrectos")
+
+    console.print("\n")
+    console.print(table_metrics)
+
     # --- RESUMEN POR ASSET (VIAJE) ---
     if 'ASSET_ID' in out_df.columns:
         table_assets = Table(title="🚚 RESUMEN POR VIAJE (ASSET)", show_header=True, header_style="bold blue")
@@ -751,74 +832,6 @@ def main():
         console.print("[italic]💡 Estos IDs deberían revisarse: pueden ser cambios reales, pero muchos son ruido.[/italic]\n")
     else:
         console.print("[green]✅ No hay IDs con ≤2 frames. Buena señal.[/green]\n")
-    
-    # --- ESCANEO RECURSIVO DE IMÁGENES ---
-    # Para evitar que el export sea lento o falle si las imágenes están en subcarpetas variables.
-    console.print(f"\n[bold cyan]🔍 Escaneando origen para exportación: {IMAGE_SOURCE_BASE}[/bold cyan]")
-    image_path_map = {}
-    try:
-        if os.path.exists(IMAGE_SOURCE_BASE):
-            for root, dirs, files in os.walk(IMAGE_SOURCE_BASE):
-                for file in files:
-                    if file.lower().endswith(('.jpeg', '.jpg', '.png')):
-                        # Mapeamos nombre de archivo -> ruta absoluta
-                        if file not in image_path_map:
-                            image_path_map[file] = os.path.join(root, file)
-            console.print(f"✅ Se indexaron [green]{len(image_path_map)}[/green] imágenes únicas para exportar.")
-        else:
-            console.print(f"⚠️ [yellow]Advertencia:[/yellow] No se encontró el directorio base de imágenes: {IMAGE_SOURCE_BASE}")
-    except Exception as e:
-        console.print(f"⚠️ [red]Error escaneando imágenes:[/red] {e}")
-
-    # --- EXPORTACIÓN DE IMÁGENES POR PERSONA_ID ---
-    console.print("\n[bold cyan]📸 EXPORTANDO IMÁGENES POR ID...[/bold cyan]")
-    
-    if os.path.exists(EXPORT_BASE_DIR):
-        rprint(f"[yellow]⚠️ La carpeta de exportación ya existe, se sobreescribirá contenido: {EXPORT_BASE_DIR}[/yellow]")
-    else:
-        os.makedirs(EXPORT_BASE_DIR, exist_ok=True)
-    
-    export_count = 0
-    error_count = 0
-    
-    # Iterar por filas para copiar imagenes
-    for _, row in out_df.iterrows():
-        asset_id = str(row['ASSET_ID'])
-        persona_id = str(row['PERSONA_ID'])
-        source_image = str(row['SOURCE_IMAGE'])
-        requiere_ver = str(row['REQUIERE_VERIFICACION'])
-        
-        if source_image == 'N/A' or not source_image:
-            continue
-            
-        # Carpeta destino: EXPORT_BASE_DIR / asset_id / persona_id
-        dest_dir = os.path.join(EXPORT_BASE_DIR, asset_id, persona_id)
-        os.makedirs(dest_dir, exist_ok=True)
-        
-        # Nombre del archivo destino: si es necesario revisar, agregar prefijo "si_"
-        dest_filename = source_image
-        if requiere_ver == 'SI':
-            dest_filename = f"si_{source_image}"
-        
-        # Ruta origen: buscar en el mapa recursivo (fallback al método tradicional)
-        src_path = image_path_map.get(source_image)
-        if not src_path:
-            src_path = os.path.join(IMAGE_SOURCE_BASE, asset_id, source_image)
-            
-        dest_path = os.path.join(dest_dir, dest_filename)
-        
-        try:
-            if os.path.exists(src_path):
-                shutil.copy2(src_path, dest_path)
-                export_count += 1
-            else:
-                # Omitir mensaje individual para evitar spam, solo contar
-                error_count += 1
-        except Exception as e:
-            error_count += 1
-            
-    console.print(f"✅ Exportación finalizada: [green]{export_count}[/green] imágenes copiadas, [red]{error_count}[/red] errores/no encontradas.")
-    console.print(f"📂 Ubicación: {EXPORT_BASE_DIR}")
 
     # Mensaje final
     if n_turco > 0:

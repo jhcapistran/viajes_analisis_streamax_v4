@@ -1,4 +1,0 @@
-version,rows_input_with_embedding,trips_total_csv,trips_processed,trips_with_results,trips_without_results,rows_output,total_persona_ids,alerts,manual_review,mini_ids,fragmented_drivers,cambio_confirmado,posible_cambio,mismo_conductor,indeterminado,inicio_viaje,avg_rows_output_per_trip,avg_alerts_per_trip,avg_personas_per_trip,runtime_seconds,result_csv
-v1_main,185204,999,999,998,1,139863,1872,5400,5259,371,674,141,5259,133465,0,998,140.143,5.411,1.876,56.96,outputs_csv_comparison/v1_main_results.csv
-v2_prod,185204,999,999,998,1,139863,1872,5400,5259,371,674,141,5259,133465,0,998,140.143,5.411,1.876,56.732,outputs_csv_comparison/v2_prod_results.csv
-v3_experimental,185204,999,999,999,0,158896,2199,6547,6300,617,706,247,6300,152349,0,0,159.055,6.554,2.201,65.133,outputs_csv_comparison/v3_experimental_results.csv
