@@ -1,0 +1,13 @@
+{
+  "config_name": "E_w4_s3_c035_d085_p06",
+  "candidate_window": 4,
+  "candidate_min_support": 3,
+  "coherence_threshold": 0.35,
+  "min_avg_dist_confirm": 0.85,
+  "min_phys_confirm": 0.6,
+  "memory_size": 6,
+  "visual_match": "sin cambios, fijo en CONSTANTS['visual_match'] (0.5)",
+  "notes": "Unica diferencia real vs memory v1 (algo_memory.py) es candidate_window 3->4 y candidate_min_support 2->3 (exige 3 de 4 observaciones coherentes en vez de 2 de 3 antes de confirmar). coherence_threshold, min_avg_dist_confirm y min_phys_confirm quedan iguales al valor original. FROZEN: no modificar despues de correr TEST.",
+  "seleccionado_sobre": "DEV completo (1416 viajes), tras grid rapido sobre subset de 295 viajes",
+  "fecha_congelado": "no se corrio TEST todavia"
+}

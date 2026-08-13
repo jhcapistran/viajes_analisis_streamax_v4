@@ -1,15 +1,19 @@
 __pycache__
-random_trips_data_2026_04.csv
 *.jpeg
-random_trips_data_2026_04.pre_gt_fix_round3.bak.csv
-/miss_review_images_v2random_trips_data_2026_04.pre_gt_fix_round3.bak.csv
-build_fp_review_html.py
-outputs_fp_review
-outputs_fp_confirmado_review
-outputs_miss_review
-all_reviewed_trips_data_2026_07.csvall_reviewed_trips_data_2026_07.csv
 
-all_reviewed_trips_data_2026_07.csv
+# Carpeta de datos completa: todos los CSV son demasiado grandes para GitHub
+# (varios superan el limite duro de 100MB, algunos >1GB). No versionados.
+data/
 
-all_reviewed_trips_data_2026_07.csv
-experiment_fp_reduction
+# Salidas generadas por los scripts de revision (HTML/imagenes/backups)
+experiments/baseline_csv/outputs/outputs_fp_review
+experiments/baseline_csv/outputs/outputs_fp_confirmado_review
+experiments/baseline_csv/outputs/outputs_miss_review
+
+# Datos/salidas generadas por los experimentos (CSV/xlsx, regenerables
+# corriendo los scripts). El codigo (.py/.md/.json) SI se versiona.
+experiments/**/*.csv
+experiments/**/*.xlsx
+experiments/prototype_memory/reviews/
+experiments/precision_tuning/reviews/
+experiments/hmm_confirmation/data/
