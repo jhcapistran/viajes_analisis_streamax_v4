@@ -1,10 +1,24 @@
 # Reduccion de FP estrictos en `CAMBIO_CONFIRMADO` — reporte corto
 
 Carpeta aislada: `experiment_fp_reduction/`. No se toco el baseline
-(`main_analisis_completo_v2.py`) ni los CSV originales (`random_trips_data_2026_04.csv`,
-`all_reviewed_trips_data_2026_07.csv`); todo se reprodujo por fuera, por viaje
+(`main_analisis_completo_v2.py`); todo se reprodujo por fuera, por viaje
 (`trip_id`), reutilizando solo funciones puras del baseline (`load_emb`,
 `CONSTANTS`, `process_asset_group`).
+
+> **Correccion aplicada a `all_reviewed_trips_data_2026_07.csv` (post primera
+> version de este reporte):** el valor `identity_id == "Otros"` estaba siendo
+> tratado como si fuera una identidad de conductor real, generando eventos GT
+> de "cambio" falsos. `"Otros"` en realidad significa "revision humana no
+> pudo asignar cara" (falla de FQA), igual que ya se habia corregido antes
+> para `random_trips_data_2026_04.csv` (ver `README.md` seccion 3). Se aplico
+> la misma correccion aqui (`fix_otros_in_reviewed_07.py`, con backup en
+> `all_reviewed_trips_data_2026_07.pre_otros_fix.bak.csv`): esas 8704 filas
+> ahora tienen `identity_id` vacio y `fqa_valid=False` directamente en el CSV
+> original (no en una copia), tal como ya estaba el resto de columnas. Todas
+> las metricas de este reporte reflejan el CSV ya corregido. El efecto fue
+> grande: el GT de `reviewed_07` baja de 1065 eventos (77% suspect) a **89
+> eventos (18% suspect)**, porque la mayoria de esas transiciones hacia/desde
+> `"Otros"` eran artefactos, no cambios reales.
 
 ## 1. Que se corrio y como
 
@@ -36,25 +50,28 @@ en `common.build_gt_for_trip`:
   los ultimos frames de la identidad previa → **`GT_SUSPECT`**: el embedding
   contradice la etiqueta.
 
-Resultado (eventos GT por dataset):
+Resultado (eventos GT por dataset, ya con `"Otros"` corregido en el CSV):
 
 | dataset | GT limpios | GT suspect | GT total | % suspect |
 |---|---|---|---|---|
 | random_04 | 58 | 59 | 117 | 50% |
-| reviewed_07 | 245 | 820 | 1065 | 77% |
+| reviewed_07 | 73 | 16 | 89 | 18% |
 
-`all_reviewed_trips_data_2026_07.csv` es muchisimo mas ruidoso: es
-consistente con que ese CSV fue armado especificamente para revisar casos
-dificiles (hay ademas evidencia previa en `README.md` de que varios "misses"
-de `random_trips_data_2026_04.csv` resultaron ser errores de etiquetado, no
-fallas del detector).
+Antes de corregir `"Otros"`, `reviewed_07` mostraba 1065 eventos GT (77%
+suspect); la enorme mayoria eran artefactos de tratar la etiqueta de falla
+de FQA como si fuera una identidad real. Con el CSV corregido, `reviewed_07`
+queda incluso mas limpio que `random_04` en proporcion de suspects (18% vs
+50%), consistente con que ambos datasets tienen calidad de etiquetado
+comparable una vez removido ese artefacto (hay ademas evidencia previa en
+`README.md` de que varios "misses" de `random_trips_data_2026_04.csv`
+resultaron ser errores de etiquetado, no fallas del detector).
 
 ## 3. Baseline reproducido: TP vs FP estrictos de `CAMBIO_CONFIRMADO`
 
 | dataset | CAMBIO_CONFIRMADO | correctos (TP) | **FP estrictos** | precision estricta | recall (cualquier alerta, sin suspect) |
 |---|---|---|---|---|---|
 | random_04 | 141 | 1 | **140** | 0.7% | 100% |
-| reviewed_07 | 185 | 17 | **168** | 9.2% | 73.9% |
+| reviewed_07 | 185 | 6 | **179** | 3.2% | 100% |
 
 Confirmando el problema reportado por el usuario: casi **todas** las
 confirmaciones automaticas del baseline son FP estrictos. El recall global
@@ -73,8 +90,8 @@ propio baseline, y si el conductor previo reaparece:
 |---|---|---|---|---|---|---|---|---|
 | random_04 | FP | 140 | 1.028 | 0.844 | 3.0 | 43.6% | **68.6%** | 0.444 |
 | random_04 | TP | 1 | 1.005 | 0.956 | 1.0 | — | 0% | 0.547 |
-| reviewed_07 | FP | 168 | 1.025 | 0.915 | 2.0 | 46.4% | **62.5%** | 0.417 |
-| reviewed_07 | TP | 17 | 1.021 | 0.934 | 4.0 | 41.2% | 41.2% | 0.381 |
+| reviewed_07 | FP | 179 | 1.025 | 0.916 | 2.0 | 46.9% | **61.5%** | 0.422 |
+| reviewed_07 | TP | 6 | 1.027 | 0.946 | 16.0 | 16.7% | 33.3% | 0.228 |
 
 Evidencia clave:
 
@@ -126,12 +143,20 @@ simple, tal como pide el brief ("no over-engineering").
 
 ### Cuanto ayuda cada pieza (ablation rapido durante la calibracion)
 
+> Nota: los pasos intermedios de esta tabla para `reviewed_07` se calibraron
+> **antes** de corregir el artefacto `"Otros"` en el CSV (ver nota al inicio
+> del reporte), cuando el GT todavia tenia 1065 eventos con 77% suspect. Se
+> mantienen aqui solo para ilustrar el razonamiento de diseno (que pieza
+> aporta que efecto); la fila final y la seccion 5 ya reflejan el GT
+> corregido (89 eventos) y son las metricas autoritativas.
+
 | variante | random_04 FP | random_04 correctos | reviewed_07 FP | reviewed_07 correctos |
 |---|---|---|---|---|
 | memoria sola (umbral candidato = 0.5, sin exigir coherencia interna fuerte) | 660 | 37 | 840 | 149 |
 | + confirmar solo con avg_dist >= 0.78 y fisica >= 0.5 | 106 | 17 | 132 | 45 |
-| **+ avg_dist >= 0.85, coherencia < 0.35, fisica >= 0.6 (final)** | **56** | **12** | **57** | **29** |
-| baseline (referencia) | 140 | 1 | 168 | 17 |
+| + avg_dist >= 0.85, coherencia < 0.35, fisica >= 0.6 (calibracion, GT sin corregir) | 56 | 12 | 57 | 29 |
+| **igual config, GT corregido (final, ver seccion 5)** | **56** | **12** | **60** | **26** |
+| baseline (referencia, GT corregido) | 140 | 1 | 179 | 6 |
 
 Lectura:
 
@@ -159,20 +184,23 @@ manda a revision humana y por lo tanto no "pierde" el caso.
 |---|---|---|---|---|---|---|---|---|
 | random_04 | baseline | 141 | 1 | 140 | 0.7% | 100.0% | 71.8% | -2.00 |
 | random_04 | **memoria+persistencia** | 68 | 12 | **56** | 17.6% | 100.0% | **73.5%** | 2.08 |
-| reviewed_07 | baseline | 185 | 17 | 168 | 9.2% | 73.9% | 41.7% | -0.24 |
-| reviewed_07 | **memoria+persistencia** | 86 | 29 | **57** | 33.7% | **82.0%** | **46.4%** | 1.38 |
+| reviewed_07 | baseline | 185 | 6 | 179 | 3.2% | 100.0% | 94.4% | -0.50 |
+| reviewed_07 | **memoria+persistencia** | 86 | 26 | **60** | 30.2% | 100.0% | **97.8%** | 1.46 |
 
 Resumen de impacto:
 
-- **FP estrictos**: -60% en `random_04` (140→56) y **-66%** en `reviewed_07`
-  (168→57).
-- **`CAMBIO_CONFIRMADO` correctos**: sube 12x en `random_04` (1→12) y ~1.7x
-  en `reviewed_07` (17→29): el nuevo algoritmo no solo confirma menos ruido,
-  tambien confirma mas cambios reales de forma automatica (antes casi todo
-  lo real quedaba solo en `POSIBLE_CAMBIO`, requiriendo revision humana).
+- **FP estrictos**: -60% en `random_04` (140→56) y **-66.5%** en `reviewed_07`
+  (179→60).
+- **`CAMBIO_CONFIRMADO` correctos**: sube 12x en `random_04` (1→12) y
+  **~4.3x** en `reviewed_07` (6→26): el nuevo algoritmo no solo confirma
+  menos ruido, tambien confirma mas cambios reales de forma automatica
+  (antes casi todo lo real quedaba solo en `POSIBLE_CAMBIO`, requiriendo
+  revision humana).
 - **Recall** (cualquier alerta) se mantiene o mejora en ambos datasets: no
-  hubo que sacrificarlo para bajar el FP.
-- **Delay de confirmacion**: media de ~1.4-2.1 frames, maximo 3 (dentro del
+  hubo que sacrificarlo para bajar el FP. En `reviewed_07`, con GT corregido,
+  el recall "sin suspect" es 100% en ambas versiones (baseline y memoria);
+  la mejora de recall se ve en la columna "con suspect" (94.4%→97.8%).
+- **Delay de confirmacion**: media de ~1.5-2.1 frames, maximo 3 (dentro del
   rango de 1-3 observaciones permitido por el brief). El baseline tenia
   delay medio *negativo* porque confirmaba en el mismo frame o antes del
   frame que el GT considera "inicio" del cambio (justo el patron de
@@ -183,7 +211,7 @@ Resumen de impacto:
 | dataset | GT total | GT_SUSPECT | % |
 |---|---|---|---|
 | random_04 | 117 | 59 | 50% |
-| reviewed_07 | 1065 | 820 | 77% |
+| reviewed_07 | 89 | 16 | 18% |
 
 Todas las metricas de arriba se reportan separando `GT_SUSPECT` (recall
 "sin suspect" vs "con suspect"); los `GT_SUSPECT` **no se corrigieron
@@ -196,12 +224,13 @@ incluyen segun la metrica.
   un grid search exhaustivo; hay margen para afinar mas si se dispone de
   mas tiempo (ademas de considerar CUSUM sobre `dist_memoria` en vez del
   conteo simple 2-de-3, para graduar mejor el trade-off FP/delay).
-- `reviewed_07` tiene GT muy ruidoso (77% suspect): antes de invertir mas
-  tiempo en el algoritmo, conviene revisar visualmente una muestra de esos
-  `GT_SUSPECT` (mismo patron que ya se hizo en `README.md` para
-  `random_trips_data_2026_04.csv`), porque probablemente varias de las
-  "correctas" del baseline/memoria que hoy cuentan como FP estricto en
-  realidad sean aciertos contra una etiqueta mal puesta.
+- `reviewed_07` sigue teniendo mas proporcion de `GT_SUSPECT` que `random_04`
+  (18% vs 50% —ya invertido respecto de antes de corregir `"Otros"`, donde
+  pareceria mucho mas ruidoso). Igual conviene revisar visualmente una
+  muestra de esos `GT_SUSPECT` restantes (mismo patron que ya se hizo en
+  `README.md` para `random_trips_data_2026_04.csv`), porque probablemente
+  varias de las "correctas" del baseline/memoria que hoy cuentan como FP
+  estricto en realidad sean aciertos contra una etiqueta mal puesta.
 - No hizo falta probar CUSUM/HMM ni CatBoost: la mejora ya cumple el
   objetivo (bajar FP manteniendo recall) con el algoritmo mas simple
   permitido por el brief.
