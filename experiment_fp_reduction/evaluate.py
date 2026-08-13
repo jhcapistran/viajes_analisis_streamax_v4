@@ -111,15 +111,15 @@ def evaluate(detail_df, gt_df, window=WINDOW, label="baseline"):
 
 if __name__ == "__main__":
     import os
-    from common import EXP_DIR
+    from common import DATA_DIR
 
     for name in ["random_04", "reviewed_07"]:
-        detail = pd.read_csv(os.path.join(EXP_DIR, f"baseline_detail_{name}.csv"))
-        gt = pd.read_csv(os.path.join(EXP_DIR, f"gt_events_{name}.csv"))
+        detail = pd.read_csv(os.path.join(DATA_DIR, f"baseline_detail_{name}.csv"))
+        gt = pd.read_csv(os.path.join(DATA_DIR, f"gt_events_{name}.csv"))
         gt['gt_suspect'] = gt['gt_suspect'].astype(bool)
         m, tp, fp = evaluate(detail, gt, label=f"baseline_{name}")
         print(f"\n=== {name} ===")
         for k, v in m.items():
             print(f"  {k}: {v}")
-        fp.to_csv(os.path.join(EXP_DIR, f"baseline_fp_{name}.csv"), index=False)
-        tp.to_csv(os.path.join(EXP_DIR, f"baseline_tp_{name}.csv"), index=False)
+        fp.to_csv(os.path.join(DATA_DIR, f"baseline_fp_{name}.csv"), index=False)
+        tp.to_csv(os.path.join(DATA_DIR, f"baseline_tp_{name}.csv"), index=False)

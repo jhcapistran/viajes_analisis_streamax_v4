@@ -62,7 +62,7 @@ from rich.panel import Panel
 from rich import print as rprint
 
 # --- CONFIGURACIÓN DE ARCHIVOS ---
-INPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "trips_data_enriched.csv")
+INPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "trips_data_enriched.csv")
 
 # --- CONFIGURACIÓN Y PARÁMETROS ---
 # =============================================================================

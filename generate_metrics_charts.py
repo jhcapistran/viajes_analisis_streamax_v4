@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from main_analisis_completo_v2 import load_and_process, compute_gt_changes, INPUT_FILE
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(BASE_DIR, "outputs_metrics_charts")
+OUTPUT_DIR = os.path.join(BASE_DIR, "outputs", "outputs_metrics_charts")
 
 
 def compute_metrics(out_df):

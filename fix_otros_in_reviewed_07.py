@@ -21,7 +21,7 @@ import csv
 import os
 import shutil
 
-INPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "all_reviewed_trips_data_2026_07.csv")
+INPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "all_reviewed_trips_data_2026_07.csv")
 BACKUP_FILE = os.path.splitext(INPUT_FILE)[0] + ".pre_otros_fix.bak.csv"
 TMP_FILE = INPUT_FILE + ".tmp_fix"
 

@@ -20,10 +20,11 @@ from main_analisis_completo_v2 import load_emb, CONSTANTS, process_asset_group  
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXP_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(EXP_DIR, "data")
 
 CSV_FILES = {
-    "random_04": os.path.join(REPO_ROOT, "random_trips_data_2026_04.csv"),
-    "reviewed_07": os.path.join(REPO_ROOT, "all_reviewed_trips_data_2026_07.csv"),
+    "random_04": os.path.join(REPO_ROOT, "data", "random_trips_data_2026_04.csv"),
+    "reviewed_07": os.path.join(REPO_ROOT, "data", "all_reviewed_trips_data_2026_07.csv"),
 }
 
 

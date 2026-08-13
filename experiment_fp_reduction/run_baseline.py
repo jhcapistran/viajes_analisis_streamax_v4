@@ -11,7 +11,7 @@ Salidas (en este mismo folder, aisladas del resto del repo):
 import os
 import pandas as pd
 
-from common import CSV_FILES, EXP_DIR, load_raw_csv, preprocess_trip, build_gt_for_trip
+from common import CSV_FILES, DATA_DIR, load_raw_csv, preprocess_trip, build_gt_for_trip
 from main_analisis_completo_v2 import process_asset_group
 
 
@@ -43,8 +43,8 @@ def run_dataset(name, path):
     print(f"  viajes con salida: {n_ok}")
     detail = pd.DataFrame(all_records)
     gt = pd.DataFrame(all_gt)
-    detail.to_csv(os.path.join(EXP_DIR, f"baseline_detail_{name}.csv"), index=False)
-    gt.to_csv(os.path.join(EXP_DIR, f"gt_events_{name}.csv"), index=False)
+    detail.to_csv(os.path.join(DATA_DIR, f"baseline_detail_{name}.csv"), index=False)
+    gt.to_csv(os.path.join(DATA_DIR, f"gt_events_{name}.csv"), index=False)
     print(f"  detalle: {len(detail)} filas -> baseline_detail_{name}.csv")
     print(f"  GT eventos: {len(gt)} ({gt['gt_suspect'].sum() if len(gt) else 0} suspect) -> gt_events_{name}.csv")
     return detail, gt

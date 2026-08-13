@@ -52,9 +52,9 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import CSV_FILES, EXP_DIR, preprocess_trip, match_events_window, cosine_dist, load_emb, CONSTANTS
+from common import CSV_FILES, EXP_DIR, DATA_DIR, preprocess_trip, match_events_window, cosine_dist, load_emb, CONSTANTS
 
-OUT_DIR = os.path.join(EXP_DIR, "manual_review")
+OUT_DIR = os.path.join(EXP_DIR, "reviews", "manual_review")
 IMAGES_DIR = os.path.join(OUT_DIR, "images")
 HTML_FILE = os.path.join(OUT_DIR, "index.html")
 CASES_CSV = os.path.join(OUT_DIR, "cases.csv")
@@ -120,12 +120,12 @@ def _fmt(v, nd=3):
 # ---------------------------------------------------------------------------
 
 def load_dataset_bundle(name):
-    gt = pd.read_csv(os.path.join(EXP_DIR, f"gt_events_{name}.csv"))
+    gt = pd.read_csv(os.path.join(DATA_DIR, f"gt_events_{name}.csv"))
     gt['gt_suspect'] = gt['gt_suspect'].astype(bool)
-    mem_detail = _add_frame_idx(pd.read_csv(os.path.join(EXP_DIR, f"memory_detail_{name}.csv")))
-    base_detail = _add_frame_idx(pd.read_csv(os.path.join(EXP_DIR, f"baseline_detail_{name}.csv")))
-    mem_fp = pd.read_csv(os.path.join(EXP_DIR, f"memory_fp_{name}.csv"))
-    mem_tp = pd.read_csv(os.path.join(EXP_DIR, f"memory_tp_{name}.csv"))
+    mem_detail = _add_frame_idx(pd.read_csv(os.path.join(DATA_DIR, f"memory_detail_{name}.csv")))
+    base_detail = _add_frame_idx(pd.read_csv(os.path.join(DATA_DIR, f"baseline_detail_{name}.csv")))
+    mem_fp = pd.read_csv(os.path.join(DATA_DIR, f"memory_fp_{name}.csv"))
+    mem_tp = pd.read_csv(os.path.join(DATA_DIR, f"memory_tp_{name}.csv"))
     return {
         'name': name, 'gt': gt, 'mem_detail': mem_detail, 'base_detail': base_detail,
         'mem_fp': mem_fp, 'mem_tp': mem_tp,

@@ -20,15 +20,15 @@ import os
 import numpy as np
 import pandas as pd
 
-from common import CSV_FILES, EXP_DIR, load_raw_csv, preprocess_trip, cosine_dist, load_emb
+from common import CSV_FILES, DATA_DIR, load_raw_csv, preprocess_trip, cosine_dist, load_emb
 from evaluate import evaluate, _add_frame_idx
 
 PERSIST_LOOKAHEAD = 10
 
 
 def diagnose_dataset(name, path):
-    detail = pd.read_csv(os.path.join(EXP_DIR, f"baseline_detail_{name}.csv"))
-    gt = pd.read_csv(os.path.join(EXP_DIR, f"gt_events_{name}.csv"))
+    detail = pd.read_csv(os.path.join(DATA_DIR, f"baseline_detail_{name}.csv"))
+    gt = pd.read_csv(os.path.join(DATA_DIR, f"gt_events_{name}.csv"))
     gt['gt_suspect'] = gt['gt_suspect'].astype(bool)
     metrics, tp_df, fp_df = evaluate(detail, gt, label=f"baseline_{name}")
 
@@ -105,7 +105,7 @@ def diagnose_dataset(name, path):
         })
 
     out = pd.DataFrame(rows)
-    out.to_csv(os.path.join(EXP_DIR, f"fp_diagnostics_{name}.csv"), index=False)
+    out.to_csv(os.path.join(DATA_DIR, f"fp_diagnostics_{name}.csv"), index=False)
 
     summary = out.groupby('es_tp').agg(
         n=('frame_idx', 'count'),
@@ -121,7 +121,7 @@ def diagnose_dataset(name, path):
     ).reset_index()
     print(f"\n=== {name}: TP (True) vs FP (False) ===")
     print(summary.to_string(index=False))
-    summary.to_csv(os.path.join(EXP_DIR, f"fp_diagnostics_summary_{name}.csv"), index=False)
+    summary.to_csv(os.path.join(DATA_DIR, f"fp_diagnostics_summary_{name}.csv"), index=False)
     return out, summary
 
 
