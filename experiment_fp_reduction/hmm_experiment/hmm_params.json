@@ -1,0 +1,71 @@
+{
+  "transition_variant": "base",
+  "transition": [
+    [
+      0.95,
+      0.05,
+      0.0
+    ],
+    [
+      0.15,
+      0.65,
+      0.2
+    ],
+    [
+      0.02,
+      0.03,
+      0.95
+    ]
+  ],
+  "emission_variant": "default",
+  "emission": {
+    "MATCH": [
+      0.9,
+      0.06,
+      0.02
+    ],
+    "RETURN": [
+      0.6,
+      0.38,
+      0.02
+    ],
+    "PHYS_IMPOSSIBLE": [
+      0.9,
+      0.09,
+      0.01
+    ],
+    "ANOMALY_WEAK": [
+      0.45,
+      0.45,
+      0.05
+    ],
+    "ANOMALY_MEDIUM": [
+      0.2,
+      0.5,
+      0.3
+    ],
+    "ANOMALY_STRONG": [
+      0.05,
+      0.3,
+      0.65
+    ],
+    "NO_EMB": [
+      0.3333333333333333,
+      0.3333333333333333,
+      0.3333333333333333
+    ]
+  },
+  "threshold_confirm": 0.45,
+  "dev_metrics": {
+    "transition": "base",
+    "emission": "default",
+    "threshold_confirm": 0.45,
+    "tp_confirmado": 19.0,
+    "fp_confirmado": 50.0,
+    "precision_confirmado": 0.2753623188405797,
+    "recall_any": 1.0,
+    "posible_cambio_total": 12363.0,
+    "delay_medio": 2.473684210526316,
+    "delay_max": 3.0
+  }
+}
