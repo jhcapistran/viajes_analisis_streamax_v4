@@ -28,9 +28,18 @@ def _add_frame_idx(detail_df):
 
 
 def evaluate(detail_df, gt_df, window=WINDOW, label="baseline"):
-    """Recall se mide contra CUALQUIER alerta (POSIBLE_CAMBIO o
-    CAMBIO_CONFIRMADO), porque POSIBLE_CAMBIO manda el evento a revision
-    humana y por lo tanto SI "detecta" el cambio (no lo pierde en silencio).
+    """IMPORTANTE: la metrica PRINCIPAL de recall es 'recall_confirmado'
+    (cuantos cambios reales limpios terminan en una alerta CAMBIO_CONFIRMADO,
+    la unica que actua automaticamente sin revision humana). Esa es la
+    linea base a usar para tuning/comparar configs.
+
+    Las metricas 'recall_*_cualquier_alerta' (POSIBLE_CAMBIO o
+    CAMBIO_CONFIRMADO) NO son 'el' recall: son una tasa de deteccion mas
+    laxa que solo dice si el cambio genero *algun* aviso (aunque haya
+    quedado pendiente de revision humana sin auto-confirmarse). Utiles como
+    piso de seguridad ("nada se pierde en silencio"), pero no deben
+    reportarse ni leerse como si fueran el recall real del sistema.
+
     FP estricto se mide SOLO sobre CAMBIO_CONFIRMADO (asi lo pide el
     objetivo): una alerta CAMBIO_CONFIRMADO que no cae cerca de ningun
     evento GT (clean o suspect) es un FP estricto."""
@@ -43,6 +52,7 @@ def evaluate(detail_df, gt_df, window=WINDOW, label="baseline"):
     n_gt_suspect = 0
     n_gt_clean_matched_any = 0
     n_gt_all_matched_any = 0
+    n_gt_clean_matched_confirm = 0
     n_confirmados = 0
     n_posibles = 0
     n_confirmados_correctos = 0
@@ -76,7 +86,13 @@ def evaluate(detail_df, gt_df, window=WINDOW, label="baseline"):
             if af not in matched_confirm_frames:
                 rows_fp.append({'trip_id': trip, 'alert_frame': af})
 
-        # --- RECALL: cualquier alerta (POSIBLE_CAMBIO o CAMBIO_CONFIRMADO) ---
+        # --- RECALL PRINCIPAL (linea base): cambios reales limpios que
+        # terminan en CAMBIO_CONFIRMADO (no cuenta POSIBLE_CAMBIO) ---
+        matches_confirm_clean, _, _ = match_events_window(gt_clean_frames, confirm_frames, window)
+        n_gt_clean_matched_confirm += len(matches_confirm_clean)
+
+        # --- deteccion laxa (piso de seguridad): cualquier alerta,
+        # POSIBLE_CAMBIO o CAMBIO_CONFIRMADO. NO es el recall principal. ---
         matches_any_all, _, _ = match_events_window(gt_all_frames, any_alert_frames, window)
         n_gt_all_matched_any += len(matches_any_all)
         matches_any_clean, _, _ = match_events_window(gt_clean_frames, any_alert_frames, window)
@@ -85,6 +101,7 @@ def evaluate(detail_df, gt_df, window=WINDOW, label="baseline"):
     tp_df = pd.DataFrame(rows_tp)
     fp_df = pd.DataFrame(rows_fp)
 
+    recall_confirmado = n_gt_clean_matched_confirm / n_gt_clean if n_gt_clean else float('nan')
     recall_clean = n_gt_clean_matched_any / n_gt_clean if n_gt_clean else float('nan')
     recall_all = n_gt_all_matched_any / (n_gt_clean + n_gt_suspect) if (n_gt_clean + n_gt_suspect) else float('nan')
     fp_strict = len(fp_df)
@@ -95,10 +112,17 @@ def evaluate(detail_df, gt_df, window=WINDOW, label="baseline"):
         'gt_clean': n_gt_clean,
         'gt_suspect': n_gt_suspect,
         'gt_total': n_gt_clean + n_gt_suspect,
+        # METRICA PRINCIPAL (linea base): de los cambios reales limpios,
+        # cuantos terminaron en CAMBIO_CONFIRMADO (automatico, sin revision).
+        'recall_confirmado': recall_confirmado,
+        'gt_clean_matched_confirmado': n_gt_clean_matched_confirm,
+        'gt_clean_matched_any': n_gt_clean_matched_any,
         'cambio_confirmado_total': n_confirmados,
         'cambio_confirmado_correctos': n_confirmados_correctos,
         'cambio_confirmado_incorrectos_fp_estrictos': fp_strict,
         'posible_cambio_total': n_posibles,
+        # Deteccion laxa (POSIBLE_CAMBIO o CAMBIO_CONFIRMADO). NO es 'el'
+        # recall: es un piso de seguridad ("nada se pierde en silencio").
         'recall_sin_suspect_cualquier_alerta': recall_clean,
         'recall_con_suspect_cualquier_alerta': recall_all,
         'precision_estricta_cambio_confirmado': precision_strict,
@@ -119,6 +143,7 @@ if __name__ == "__main__":
         gt['gt_suspect'] = gt['gt_suspect'].astype(bool)
         m, tp, fp = evaluate(detail, gt, label=f"baseline_{name}")
         print(f"\n=== {name} ===")
+        print(f"  >>> recall_confirmado (LINEA BASE): {m['recall_confirmado']}")
         for k, v in m.items():
             print(f"  {k}: {v}")
         fp.to_csv(os.path.join(DATA_DIR, f"baseline_fp_{name}.csv"), index=False)

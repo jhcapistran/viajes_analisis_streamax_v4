@@ -14,6 +14,9 @@
     "gt_clean": 96,
     "gt_suspect": 64,
     "gt_total": 160,
+    "recall_confirmado": 0.1875,
+    "gt_clean_matched_confirmado": 18,
+    "gt_clean_matched_any": 96,
     "cambio_confirmado_total": 64,
     "cambio_confirmado_correctos": 24,
     "cambio_confirmado_incorrectos_fp_estrictos": 40,
@@ -27,18 +30,20 @@
   },
   "confusion_por_viaje": {
     "n_dev_trips": 1416,
-    "trips_with_change": 136,
-    "trips_without_change": 1280,
-    "TP_trips": 24,
-    "FN_trips": 112,
-    "FP_trips": 24,
-    "TN_trips": 1256
+    "trips_with_change": 83,
+    "trips_without_change": 1333,
+    "TP_trips": 18,
+    "FN_trips": 65,
+    "FP_trips": 28,
+    "TN_trips": 1305
   },
   "frecuencia_de_error": {
     "trips_per_fp": 35.4,
     "hours_per_fp": 298.47990277777774,
     "fp_per_1000_trips": 28.24858757062147,
-    "changes_per_miss": 0.0,
+    "soft_pending": 78,
+    "silent_misses": 0,
+    "changes_per_silent_miss": 0.0,
     "posible_por_1000_trips": 8726.694915254237,
     "total_hours_analyzed": 11939.19611111111
   }

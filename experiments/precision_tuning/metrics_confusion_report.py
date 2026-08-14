@@ -127,7 +127,11 @@ def trip_level_confusion(detail_df, gt_df, cache, window=WINDOW):
         d = detail_df[detail_df["ASSET_ID"] == t]
         confirm_frames = d.loc[d["DECISION_SISTEMA"] == "CAMBIO_CONFIRMADO", "frame_idx"].tolist()
         g = gt_by_trip.get(t)
-        gt_frames = g["frame_idx"].dropna().astype(int).tolist() if g is not None else []
+        # Solo GT limpio (no suspect) cuenta como "cambio real" aqui, para
+        # que esta matriz sea consistente con recall_confirmado (la linea
+        # base): un GT_SUSPECT no es un cambio confirmado por el humano.
+        gt_frames = (g.loc[~g["gt_suspect"], "frame_idx"].dropna().astype(int).tolist()
+                     if g is not None else [])
 
         if gt_frames:
             trips_with_change.add(t)
@@ -186,15 +190,15 @@ def make_dashboard(metrics, conf, freq, out_path):
             txt_color = "white" if sum(luminance) < 1.5 else "black"
             ax0.text(j, i, f"{labels[i,j]}\n{val}", ha="center", va="center",
                      fontsize=13, fontweight="bold", color=txt_color)
-    ax0.set_title("Matriz de confusion (por viaje)", fontsize=11, fontweight="bold")
+    ax0.set_title("Matriz de confusion (por viaje, GT limpio)", fontsize=11, fontweight="bold")
     cbar = fig.colorbar(im, ax=ax0, fraction=0.045, pad=0.12, shrink=0.85)
     cbar.ax.tick_params(labelsize=8)
 
     # ---------- Panel B: KPIs principales (barras horizontales) ----------
     ax1 = fig.add_subplot(gs[0, 1])
-    kpi_names = ["Precision\n(confirmados)", "Recall\n(confirmado)", "Recall\n(cualquier alerta)"]
+    kpi_names = ["Precision\n(confirmados)", "Recall CONFIRMADO\n(linea base)", "Deteccion cualquier\nalerta (piso seg.)"]
     kpi_vals = [metrics["precision_estricta_cambio_confirmado"],
-                metrics["cambio_confirmado_correctos"] / metrics["gt_clean"] if metrics["gt_clean"] else 0.0,
+                metrics["recall_confirmado"],
                 metrics["recall_sin_suspect_cualquier_alerta"]]
     colors = [OI_ORANGE, OI_BLUE, OI_SKY]
     y_pos = np.arange(len(kpi_names))
@@ -211,18 +215,21 @@ def make_dashboard(metrics, conf, freq, out_path):
 
     # ---------- Panel C: conteos crudos (barras) ----------
     ax2 = fig.add_subplot(gs[1, 0])
+    silent_misses = metrics["gt_clean"] - metrics["gt_clean_matched_any"]
+    soft_pending = metrics["gt_clean_matched_any"] - metrics["gt_clean_matched_confirmado"]
     cat_names = ["Cambios reales\n(GT limpio)", "Confirmados\ncorrectos (TP)",
-                 "Confirmados\nincorrectos (FP)", "Cambios reales\nperdidos"]
-    cat_vals = [metrics["gt_clean"], metrics["cambio_confirmado_correctos"],
+                 "Confirmados\nincorrectos (FP)", "Solo POSIBLE\n(pendiente revision)",
+                 "Perdidos\nen silencio"]
+    cat_vals = [metrics["gt_clean"], metrics["gt_clean_matched_confirmado"],
                 metrics["cambio_confirmado_incorrectos_fp_estrictos"],
-                metrics["gt_clean"] - round(metrics["recall_sin_suspect_cualquier_alerta"] * metrics["gt_clean"])]
-    cat_colors = [OI_GREY, OI_GREEN, OI_VERMILLION, OI_PURPLE]
+                soft_pending, silent_misses]
+    cat_colors = [OI_GREY, OI_GREEN, OI_VERMILLION, OI_YELLOW, OI_PURPLE]
     bars = ax2.bar(cat_names, cat_vals, color=cat_colors, edgecolor=OI_BLACK, linewidth=0.6)
     for b, v in zip(bars, cat_vals):
         ax2.text(b.get_x() + b.get_width() / 2, v + max(cat_vals) * 0.015, str(v),
                   ha="center", fontsize=9.5, fontweight="bold")
     ax2.set_title("Conteos absolutos (DEV completo)", fontsize=11, fontweight="bold")
-    ax2.tick_params(axis="x", labelsize=8.5)
+    ax2.tick_params(axis="x", labelsize=8)
     ax2.spines[["top", "right"]].set_visible(False)
 
     # ---------- Panel D: frecuencia de error (texto) ----------
@@ -230,20 +237,24 @@ def make_dashboard(metrics, conf, freq, out_path):
     ax3.axis("off")
     lines = [
         ("¿Cada cuanto nos equivocamos?", True),
+        (f"Recall CONFIRMADO (linea base): {metrics['recall_confirmado']*100:.1f}% de los cambios reales "
+         f"terminan en CAMBIO_CONFIRMADO automatico.", False),
         (f"1 falso positivo (CAMBIO_CONFIRMADO incorrecto) cada "
          f"{freq['trips_per_fp']:.0f} viajes analizados.", False),
         (f"1 falso positivo cada {freq['hours_per_fp']:.1f} horas de video analizado.", False),
         (f"{freq['fp_per_1000_trips']:.1f} falsos positivos por cada 1000 viajes.", False),
-        (f"1 cambio real perdido (ni siquiera quedo como posible) cada "
-         f"{freq['changes_per_miss']:.1f} cambios reales." if freq["changes_per_miss"] else
-         "Ningun cambio real fue perdido en silencio (recall cualquier-alerta = 100%).", False),
+        (f"{freq['soft_pending']} cambios reales quedan solo como POSIBLE_CAMBIO "
+         f"(pendientes de revision humana, no se auto-confirman).", False),
+        (f"1 cambio real perdido totalmente en silencio (ni POSIBLE) cada "
+         f"{freq['changes_per_silent_miss']:.1f} cambios reales." if freq["changes_per_silent_miss"] else
+         "Ningun cambio real se pierde totalmente en silencio.", False),
         (f"Delay medio de confirmacion: {metrics['delay_medio_frames_confirmado']:.1f} frames "
          f"(max {metrics['delay_max_frames_confirmado']:.0f}).", False),
-       
+
     ]
     y = 0.95
     for text, is_title in lines:
-        ax3.text(0.0, y, text, fontsize=11.5 if is_title else 10, fontweight="bold" if is_title else "normal",
+        ax3.text(0.0, y, text, fontsize=11.5 if is_title else 9.5, fontweight="bold" if is_title else "normal",
                   color=OI_BLACK, va="top", wrap=True, transform=ax3.transAxes)
         y -= 0.14 if is_title else 0.135
     ax3.set_title("Frecuencia de error", fontsize=11, fontweight="bold", loc="left")
@@ -277,12 +288,15 @@ def main():
 
     total_hours = total_hours_analyzed(cache)
     fp_total = metrics["cambio_confirmado_incorrectos_fp_estrictos"]
-    misses = metrics["gt_clean"] - round(metrics["recall_sin_suspect_cualquier_alerta"] * metrics["gt_clean"])
+    silent_misses = metrics["gt_clean"] - metrics["gt_clean_matched_any"]
+    soft_pending = metrics["gt_clean_matched_any"] - metrics["gt_clean_matched_confirmado"]
     freq = {
         "trips_per_fp": (n_dev / fp_total) if fp_total else float("inf"),
         "hours_per_fp": (total_hours / fp_total) if fp_total else float("inf"),
         "fp_per_1000_trips": 1000 * fp_total / n_dev,
-        "changes_per_miss": (metrics["gt_clean"] / misses) if misses else 0.0,
+        "soft_pending": soft_pending,
+        "silent_misses": silent_misses,
+        "changes_per_silent_miss": (metrics["gt_clean"] / silent_misses) if silent_misses else 0.0,
         "posible_por_1000_trips": 1000 * metrics["posible_cambio_total"] / n_dev,
         "total_hours_analyzed": total_hours,
     }
