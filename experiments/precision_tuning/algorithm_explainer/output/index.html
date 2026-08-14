@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Como funciona Memory v1 + 3-de-4</title>
+<style>
+:root {
+  --bg: #0d1117; --panel: #161b22; --panel2: #1c2330; --border: #2a313d;
+  --text: #e6edf3; --muted: #8b96a5; --accent: #4a90d9; --green: #3fb950;
+  --yellow: #d9a441; --red: #f85149; --blue: #58a6ff; --purple: #bc8cff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+h1,h2,h3,h4 { font-weight: 600; }
+.wrap { max-width: 1500px; margin: 0 auto; padding: 24px; }
+
+/* ---------- Hero ---------- */
+#hero { background: linear-gradient(135deg,#0d1117 0%,#141c2b 60%,#0d1117 100%); border-bottom: 1px solid var(--border); padding: 40px 24px 30px; text-align: center; }
+#hero h1 { font-size: 28px; margin: 0 0 8px; }
+#hero .subtitle { color: var(--muted); font-size: 15px; max-width: 820px; margin: 0 auto; line-height: 1.5; }
+.tagline { display:inline-block; margin-top:14px; padding:6px 16px; border-radius: 20px; background: rgba(74,144,217,0.15); border:1px solid var(--accent); color: var(--blue); font-size: 13px; }
+
+/* ---------- Flow diagram ---------- */
+#flow { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin: 28px auto 8px; max-width: 1300px; }
+.flow-step { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; font-size: 13px; text-align: center; min-width: 108px;
+  opacity: 0; animation: fadeInUp .55s ease forwards; }
+.flow-step b { display:block; font-size: 14px; margin-bottom: 3px; color: var(--blue); }
+.flow-arrow { color: var(--muted); font-size: 20px; opacity: 0; animation: fadeInUp .55s ease forwards; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
+/* ---------- Rule box ---------- */
+#rulebox { max-width: 980px; margin: 26px auto 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; }
+#rulebox h3 { margin-top:0; color: var(--yellow); font-size: 15px; text-transform: uppercase; letter-spacing: .5px;}
+#rulebox ul { margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.85; color: #cfd8e3; }
+#rulebox code { background: #0006; padding: 1px 6px; border-radius: 4px; color: var(--yellow); }
+
+/* ---------- Case tabs ---------- */
+#tabs-section { margin-top: 34px; }
+.tab-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 14px 0 6px; }
+#tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab-btn { background: var(--panel2); border: 1px solid var(--border); color: var(--text); padding: 9px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all .15s; }
+.tab-btn:hover { border-color: var(--accent); }
+.tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.tab-btn.kind-fp.active { background: var(--red); border-color: var(--red); }
+.tab-btn.kind-vuelve.active, .tab-btn.kind-fp_dificil.active { background: var(--purple); border-color: var(--purple); }
+
+/* ---------- Case view ---------- */
+#case-view { margin-top: 22px; }
+.case-header { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 16px; }
+.case-header h2 { margin: 0 0 6px; font-size: 19px; }
+.case-meta { color: var(--muted); font-size: 13px; }
+.gt-box { margin-top: 12px; border: 1px dashed #665; border-radius: 8px; padding: 10px 14px; background: rgba(217,164,65,0.08); font-size: 13px; }
+.gt-box .gt-tag { display:inline-block; font-weight:700; font-size: 11px; letter-spacing: .5px; color: var(--yellow); border: 1px solid var(--yellow); border-radius: 5px; padding: 2px 8px; margin-right: 8px; }
+.gt-box .gt-note { display:block; margin-top: 6px; color: var(--muted); font-size: 11.5px; font-style: italic; }
+
+/* ---------- Timeline ---------- */
+#timeline-wrap { overflow-x: auto; padding: 6px 2px 14px; }
+#timeline { display: flex; gap: 8px; align-items: flex-end; position: relative; }
+.tl-frame { flex: 0 0 auto; width: 78px; text-align: center; cursor: pointer; }
+.tl-frame .thumb { width: 78px; height: 78px; object-fit: cover; border-radius: 6px; border: 3px solid #333; display:block; }
+.tl-frame .thumb.dec-INICIO_VIAJE { border-color: var(--blue); }
+.tl-frame .thumb.dec-MISMO_CONDUCTOR { border-color: var(--green); }
+.tl-frame .thumb.dec-POSIBLE_CAMBIO { border-color: var(--yellow); }
+.tl-frame .thumb.dec-CAMBIO_CONFIRMADO { border-color: var(--red); box-shadow: 0 0 10px rgba(248,81,73,.6); }
+.tl-frame .thumb.dec-INDETERMINADO { border-color: #555; }
+.tl-frame.selected .thumb { outline: 3px solid #fff; }
+.tl-frame .idx { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+.tl-connector { position:absolute; height: 2px; background: var(--border); z-index: -1; }
+
+/* ---------- Detail grid ---------- */
+#detail { display: grid; grid-template-columns: 380px 1fr; gap: 18px; }
+@media (max-width: 980px) { #detail { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+.panel h4 { margin: 0 0 10px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+#big-img-wrap { text-align: center; }
+#big-img-wrap img { max-width: 100%; max-height: 340px; border-radius: 8px; border: 4px solid #333; }
+#decision-badge { display:inline-block; margin-top: 12px; padding: 8px 22px; border-radius: 30px; font-weight: 700; font-size: 15px; letter-spacing: .5px; }
+.badge-INICIO_VIAJE { background: rgba(88,166,255,0.18); color: var(--blue); border:1px solid var(--blue); }
+.badge-MISMO_CONDUCTOR { background: rgba(63,185,80,0.18); color: var(--green); border:1px solid var(--green); }
+.badge-POSIBLE_CAMBIO { background: rgba(217,164,65,0.18); color: var(--yellow); border:1px solid var(--yellow); }
+.badge-CAMBIO_CONFIRMADO { background: rgba(248,81,73,0.2); color: var(--red); border:1px solid var(--red); }
+.badge-INDETERMINADO { background: rgba(139,148,165,0.18); color: var(--muted); border:1px solid var(--muted); }
+
+.stat-row { display:flex; justify-content: space-between; font-size: 13px; padding: 3px 0; border-bottom: 1px dotted #2a313d; }
+.stat-row .k { color: var(--muted); }
+.stat-row .v { font-weight: 600; }
+
+.right-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 720px) { .right-grid { grid-template-columns: 1fr; } }
+
+.formula { font-family: 'Cambria Math', 'Latin Modern Math', Georgia, serif; background: #0006; border-radius: 8px; padding: 10px 12px; margin: 8px 0; font-size: 14.5px; line-height: 1.6; }
+.formula .num { color: var(--blue); font-weight: 700; font-family: 'Segoe UI', sans-serif; }
+.formula .res { color: var(--yellow); font-weight: 700; font-family: 'Segoe UI', sans-serif; }
+
+.mem-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.mem-chip { width: 52px; text-align: center; }
+.mem-chip img { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; border: 2px solid var(--accent); }
+.mem-chip .noimg { width: 52px; height: 52px; border-radius: 6px; border: 2px dashed #555; display:flex; align-items:center; justify-content:center; font-size: 10px; color: var(--muted); }
+.mem-chip .lbl { font-size: 9.5px; color: var(--muted); margin-top: 2px; }
+
+.window-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.win-slot { width: 66px; text-align: center; border-radius: 8px; padding: 4px; border: 2px solid #444; }
+.win-slot.coherent { border-color: var(--yellow); box-shadow: 0 0 8px rgba(217,164,65,.5); }
+.win-slot img { width: 58px; height: 58px; object-fit: cover; border-radius: 5px; }
+.win-slot .noimg { width: 58px; height: 58px; border-radius: 5px; border: 1px dashed #555; display:flex; align-items:center; justify-content:center; font-size: 9px; color: var(--muted); }
+.win-slot .d { font-size: 10.5px; margin-top: 3px; color: var(--muted); }
+
+.check-row { display:flex; justify-content: space-between; align-items:center; font-size: 13.5px; padding: 6px 8px; margin: 4px 0; border-radius: 6px; background: #0004; }
+.check-row .ok { color: var(--green); font-weight: 700; }
+.check-row .bad { color: var(--red); font-weight: 700; }
+.final-verdict { margin-top: 10px; text-align:center; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 14px; }
+.final-verdict.yes { background: rgba(248,81,73,.18); color: var(--red); border: 1px solid var(--red); }
+.final-verdict.no { background: rgba(63,185,80,.12); color: var(--green); border: 1px solid var(--green); }
+
+.stage-flow { display:flex; align-items:center; justify-content:center; gap: 10px; margin: 10px 0 4px; flex-wrap: wrap;}
+.stage { padding: 8px 14px; border-radius: 8px; border: 1px solid #444; font-size: 12.5px; color: var(--muted); }
+.stage.active { border-color: var(--accent); color: var(--text); background: rgba(74,144,217,.15); font-weight:700; }
+.stage-arrow { color: #555; }
+
+/* ---------- Metrics chart (evolucion en el tiempo) ---------- */
+.chart-wrap { overflow-x: auto; }
+.chart-legend { display:flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.chart-legend span { display:inline-flex; align-items:center; gap:5px; }
+.chart-legend i { width: 14px; height: 3px; display:inline-block; border-radius: 2px; }
+.chart-col-hit { cursor: pointer; }
+.chart-col-hit:hover { fill: rgba(255,255,255,0.06); }
+
+/* ---------- Ventana: evolucion / solapamiento ---------- */
+.panel.wide { grid-column: 1 / -1; }
+.wgrid { display:flex; flex-direction:column; gap:3px; overflow-x:auto; padding-bottom: 4px; }
+.wgrid-row { display:flex; align-items:center; gap:4px; }
+.wgrid-label { width:112px; flex:0 0 auto; font-size:11px; color:var(--muted); white-space:nowrap; }
+.wgrid-cells { display:flex; gap:3px; }
+.wgrid-collabel { width:24px; text-align:center; font-size:10px; color:var(--muted); }
+.wcell { width:24px; height:20px; border-radius:4px; background:#20242c; border:1px solid #2a313d; cursor:pointer; }
+.wc-anom { background: rgba(88,166,255,.35); border-color: var(--blue); }
+.wc-coherent { background: rgba(217,164,65,.6); border-color: var(--yellow); }
+.wc-current { outline: 2px solid #fff; outline-offset: -1px; }
+
+/* ---------- Comparacion (ahora es un caso interactivo mas) ---------- */
+.cmp-intro { font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+.cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+@media (max-width: 1100px) { .cmp-grid { grid-template-columns: 1fr; } }
+.cmp-col { border-radius: 12px; padding: 4px; border: 2px solid; }
+.cmp-col.ok { border-color: var(--green); }
+.cmp-col.fp { border-color: var(--red); }
+.cmp-col-title { text-align:center; font-weight: 700; padding: 8px; font-size: 13.5px; letter-spacing:.4px; }
+.cmp-col.ok .cmp-col-title { color: var(--green); }
+.cmp-col.fp .cmp-col-title { color: var(--red); }
+.cmp-col .case-header, .cmp-col .panel { margin: 8px; }
+.compare-note { text-align:center; max-width: 900px; margin: 22px auto 0; color: var(--muted); font-size: 13.5px; line-height:1.6; }
+
+/* ---------- Lightbox ---------- */
+#lightbox { display:none; position: fixed; inset:0; background: rgba(0,0,0,.92); z-index: 999; align-items:center; justify-content:center; cursor: zoom-out; }
+#lightbox.open { display:flex; }
+#lightbox img { max-width: 94vw; max-height: 94vh; border-radius: 8px; }
+
+footer { text-align:center; color: var(--muted); font-size: 12px; padding: 30px 10px 50px; }
+</style>
+</head>
+<body>
+
+<div id="hero">
+  <h1>Memory v1 + 3-de-4: como decide el algoritmo</h1>
+  <div class="subtitle">
+    Explicador visual e interactivo del sistema de deteccion de cambio de conductor por memoria de embeddings faciales,
+    coherencia temporal y fisica del vehiculo. Todos los numeros que se muestran a continuacion son calculos reales
+    sobre viajes reales del repositorio (no son ejemplos inventados).
+  </div>
+  <div class="tagline">E_w4_s3_c035_d085_p06 &nbsp;|&nbsp; ventana=4 &nbsp;|&nbsp; soporte=3 &nbsp;|&nbsp; coherencia&lt;0.35 &nbsp;|&nbsp; dist&ge;0.85 &nbsp;|&nbsp; fisica&ge;0.60</div>
+</div>
+
+<div class="wrap">
+
+  <div id="flow"></div>
+
+  <div id="rulebox">
+    <h3>La regla de confirmacion (no es una simple suma de umbrales)</h3>
+    <ul>
+      <li><code>dist_mem &ge; 0.50</code> &rarr; el frame es candidato a anomalia (no hace match directo con la memoria del conductor vigente).</li>
+      <li>Se abre/actualiza una <b>ventana candidata</b> de hasta <b>4</b> observaciones anomalas recientes.</li>
+      <li>Dentro de esa ventana se busca el <b>grupo mas coherente entre si</b> (distancia par-a-par <code>&lt; 0.35</code>).</li>
+      <li>Ese grupo debe tener <b>soporte &ge; 3</b> (al menos 3 de las 4 observaciones deben ser coherentes entre si).</li>
+      <li>La <b>distancia promedio del grupo coherente contra la memoria vieja</b> debe ser <code>&ge; 0.85</code>.</li>
+      <li>La <b>fisica del ultimo salto</b> (tiempo disponible vs. tiempo minimo de maniobra) debe dar <code>P_fisica &ge; 0.60</code>.</li>
+      <li>Si <b>las 3 condiciones se cumplen a la vez</b> &rarr; <code>CAMBIO_CONFIRMADO</code>. Si el conductor anterior reaparece antes (dist_mem &lt; 0.5), el candidato se descarta por completo.</li>
+    </ul>
+  </div>
+
+  <div id="tabs-section">
+    <div class="tab-group-label">Cambios reales detectados correctamente</div>
+    <div id="tabs-ok" class="tab-list"></div>
+    <div class="tab-group-label">Falsos positivos confirmados (revisados manualmente como misma persona)</div>
+    <div id="tabs-fp" class="tab-list"></div>
+    <div class="tab-group-label">Caso especial: anomalia que no confirma</div>
+    <div id="tabs-special" class="tab-list"></div>
+    <div class="tab-group-label">Comparacion directa</div>
+    <div id="tabs-cmp" class="tab-list"></div>
+  </div>
+
+  <div id="case-view"></div>
+
+</div>
+
+<div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src=""></div>
+
+<footer>
+  Generado a partir de datos reales de random_trips_data_2026_04.csv / all_reviewed_trips_data_2026_07.csv &middot;
+  E_w4_s3_c035_d085_p06 (algo_v1_param.py) &middot; Solo visualizacion, ningun umbral fue modificado para este reporte.
+</footer>
+
+<script>
+const CASES = [{"case_id": "tp1", "kind": "correcto", "titulo": "Cambio real detectado correctamente #1", "gt_label": "CAMBIO_REAL (confirmado por revision manual: identity_id crudo seguia mal etiquetado, el algoritmo detecto el cambio real que el GT original no habia marcado)", "trip_id": "1867131776405754", "dataset": "random_04", "alert_frame": 17, "n_total_frames": 246, "frames": [{"frame_idx": 10, "ts_seconds": 1776409139, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.5765721690694958, "dist_mem_breakdown": {"dot": 0.39316665059758227, "norm_a": 0.9285328324959785, "norm_b": 1.0000000187860618, "cos_sim": 0.42342783093050423, "dist": 0.5765721690694958}, "prev_frame_dist": 0.6622485156682262, "prev_frame_dist_breakdown": {"dot": 0.3377515135178208, "norm_a": 1.0000000676267236, "norm_b": 1.0000000187860618, "cos_sim": 0.3377514843317738, "dist": 0.6622485156682262}, "p_fisica": 0.012513764744381645, "physics_breakdown": {"t_frenado": 6.944444444444445, "t_arranque": 6.7388889524671765, "t_maniobra": 90, "t_req": 103.68333339691162, "t_sobra": -43.68333339691162, "v_prev": 13.88888888888889, "v_curr": 3.3694444762335882, "a_decel": 2.0, "a_accel": 0.5, "v_max": 13.88888888888889, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 12.130000114440918, "delta_t": 60, "memory_size": 6, "memory_frame_idx": [4, 5, 6, 7, 9, 10], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1776409139000_4.jpeg", "local_path": "images/1867131776405754/1776409139000_4.jpeg"}, {"frame_idx": 11, "ts_seconds": 1776409199, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.9753721342561008, "dist_mem_breakdown": {"dot": 0.021100630854153642, "norm_a": 0.8567786692971753, "norm_b": 1.00000003859914, "cos_sim": 0.024627865743899226, "dist": 0.9753721342561008}, "prev_frame_dist": 0.9490277193419177, "prev_frame_dist_breakdown": {"dot": 0.05097228358313702, "norm_a": 1.0000000187860618, "norm_b": 1.00000003859914, "cos_sim": 0.05097228065808237, "dist": 0.9490277193419177}, "p_fisica": 0.015240032755796887, "physics_breakdown": {"t_frenado": 1.6847222381167941, "t_arranque": 10.0, "t_maniobra": 90, "t_req": 101.68472223811679, "t_sobra": -41.68472223811679, "v_prev": 3.3694444762335882, "v_curr": 5.0, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.0, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 18.0, "delta_t": 60, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 9, 10, 11], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1776409199000_4.jpeg", "local_path": "images/1867131776405754/1776409199000_4.jpeg"}, {"frame_idx": 12, "ts_seconds": 1776409379, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.14418992629877647, "dist_mem_breakdown": {"dot": 0.6253682416307335, "norm_a": 0.7307324577945449, "norm_b": 1.0000000688709594, "cos_sim": 0.8558100737012235, "dist": 0.14418992629877647}, "prev_frame_dist": 0.9450074338791284, "prev_frame_dist_breakdown": {"dot": 0.054992572030928215, "norm_a": 1.00000003859914, "norm_b": 1.0000000688709594, "cos_sim": 0.054992566120871514, "dist": 0.9450074338791284}, "p_fisica": 0.9997662702134569, "physics_breakdown": {"t_frenado": 2.5, "t_arranque": 3.888888888888889, "t_maniobra": 90, "t_req": 96.38888888888889, "t_sobra": 83.61111111111111, "v_prev": 5.0, "v_curr": 1.9444444444444444, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.0, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 7.0, "delta_t": 180, "memory_size": 6, "memory_frame_idx": [6, 7, 9, 10, 11, 12], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1776409379000_4.jpeg", "local_path": "images/1867131776405754/1776409379000_4.jpeg"}, {"frame_idx": 13, "ts_seconds": 1776437316, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9025821866078342, "dist_mem_breakdown": {"dot": 0.07093135760620123, "norm_a": 0.7281148801208069, "norm_b": 0.9999999730236849, "cos_sim": 0.09741781339216578, "dist": 0.9025821866078342}, "prev_frame_dist": 0.9178682561420846, "prev_frame_dist_breakdown": {"dot": 0.08213174729879552, "norm_a": 1.0000000688709594, "norm_b": 0.9999999730236849, "cos_sim": 0.08213174385791548, "dist": 0.9178682561420846}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 0.9722222222222222, "t_arranque": 11.11111111111111, "t_maniobra": 90, "t_req": 102.08333333333334, "t_sobra": 27834.916666666668, "v_prev": 1.9444444444444444, "v_curr": 5.555555555555555, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.555555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 20.0, "delta_t": 27937, "memory_size": 6, "memory_frame_idx": [6, 7, 9, 10, 11, 12], "pending_frames": [13], "pending_dists": [0.9026], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.9025821866078342, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1776437316000_4.jpeg", "local_path": "images/1867131776405754/1776437316000_4.jpeg"}, {"frame_idx": 14, "ts_seconds": 1776437376, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.946752192042732, "dist_mem_breakdown": {"dot": 0.03877052240610708, "norm_a": 0.7281148801208069, "norm_b": 1.0000000283360937, "cos_sim": 0.05324780795726802, "dist": 0.946752192042732}, "prev_frame_dist": 0.3107293687387729, "prev_frame_dist_breakdown": {"dot": 0.6892706321984821, "norm_a": 0.9999999730236849, "norm_b": 1.0000000283360937, "cos_sim": 0.6892706312612271, "dist": 0.3107293687387729}, "p_fisica": 0.011607316445304631, "physics_breakdown": {"t_frenado": 2.7777777777777777, "t_arranque": 11.666666666666666, "t_maniobra": 90, "t_req": 104.44444444444444, "t_sobra": -44.44444444444444, "v_prev": 5.555555555555555, "v_curr": 5.833333333333333, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.833333333333333, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 21.0, "delta_t": 60, "memory_size": 6, "memory_frame_idx": [7, 9, 10, 11, 12, 14], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1776437376000_4.jpeg", "local_path": "images/1867131776405754/1776437376000_4.jpeg"}, {"frame_idx": 15, "ts_seconds": 1776437496, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8640077735310961, "dist_mem_breakdown": {"dot": 0.08360516022763499, "norm_a": 0.6147789348199201, "norm_b": 1.0000000489837366, "cos_sim": 0.13599222646890385, "dist": 0.8640077735310961}, "prev_frame_dist": 0.7337066929619348, "prev_frame_dist_breakdown": {"dot": 0.2662933276278189, "norm_a": 1.0000000283360937, "norm_b": 1.0000000489837366, "cos_sim": 0.2662933070380652, "dist": 0.7337066929619348}, "p_fisica": 0.682197457545419, "physics_breakdown": {"t_frenado": 2.9166666666666665, "t_arranque": 19.444444444444443, "t_maniobra": 90, "t_req": 112.36111111111111, "t_sobra": 7.638888888888886, "v_prev": 5.833333333333333, "v_curr": 9.722222222222221, "a_decel": 2.0, "a_accel": 0.5, "v_max": 9.722222222222221, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 35.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [7, 9, 10, 11, 12, 14], "pending_frames": [13, 15], "pending_dists": [0.9026, 0.864], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.9025821866078342, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1776437496000_4.jpeg", "local_path": "images/1867131776405754/1776437496000_4.jpeg"}, {"frame_idx": 16, "ts_seconds": 1776437676, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.850553425384434, "dist_mem_breakdown": {"dot": 0.09187660888328018, "norm_a": 0.6147789348199201, "norm_b": 1.000000031875762, "cos_sim": 0.14944657461556596, "dist": 0.850553425384434}, "prev_frame_dist": 0.7368526968705643, "prev_frame_dist_breakdown": {"dot": 0.2631473244073951, "norm_a": 1.0000000489837366, "norm_b": 1.000000031875762, "cos_sim": 0.2631473031294357, "dist": 0.7368526968705643}, "p_fisica": 0.9996871408136699, "physics_breakdown": {"t_frenado": 4.861111111111111, "t_arranque": 4.444444444444445, "t_maniobra": 90, "t_req": 99.30555555555556, "t_sobra": 80.69444444444444, "v_prev": 9.722222222222221, "v_curr": 2.2222222222222223, "a_decel": 2.0, "a_accel": 0.5, "v_max": 9.722222222222221, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 8.0, "delta_t": 180, "memory_size": 6, "memory_frame_idx": [7, 9, 10, 11, 12, 14], "pending_frames": [13, 15, 16], "pending_dists": [0.9026, 0.864, 0.8506], "coherent_local": [0, 2], "support": 2, "avg_dist_vs_old": 0.8765678059961342, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1776437676000_4.jpeg", "local_path": "images/1867131776405754/1776437676000_4.jpeg"}, {"frame_idx": 17, "ts_seconds": 1776437796, "decision": "CAMBIO_CONFIRMADO", "dist_mem": 0.8716817673423505, "dist_mem_breakdown": {"dot": 0.07888734318834983, "norm_a": 0.6147789348199201, "norm_b": 0.999999959399133, "cos_sim": 0.12831823265764958, "dist": 0.8716817673423505}, "prev_frame_dist": 0.33772894489617356, "prev_frame_dist_breakdown": {"dot": 0.6622710493254411, "norm_a": 1.000000031875762, "norm_b": 0.999999959399133, "cos_sim": 0.6622710551038264, "dist": 0.33772894489617356}, "p_fisica": 0.7418402904888369, "physics_breakdown": {"t_frenado": 1.1111111111111112, "t_arranque": 18.333333333333332, "t_maniobra": 90, "t_req": 109.44444444444444, "t_sobra": 10.555555555555557, "v_prev": 2.2222222222222223, "v_curr": 9.166666666666666, "a_decel": 2.0, "a_accel": 0.5, "v_max": 9.166666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 33.0, "delta_t": 120, "memory_size": 3, "memory_frame_idx": [16, 13, 17], "pending_frames": [13, 15, 16, 17], "pending_dists": [0.9026, 0.864, 0.8506, 0.8717], "coherent_local": [2, 0, 3], "support": 3, "avg_dist_vs_old": 0.874939126444873, "candidate_frames": [13, 15, 16, 17], "coherent_frames": [16, 13, 17], "confirm_checks": {"support_ok": true, "avg_dist_ok": true, "phys_ok": true}, "basename": "1776437796000_4.jpeg", "local_path": "images/1867131776405754/1776437796000_4.jpeg"}, {"frame_idx": 18, "ts_seconds": 1776437916, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.2786088244896374, "dist_mem_breakdown": {"dot": 0.6310125615980613, "norm_a": 0.8747161739841366, "norm_b": 1.0000000516784004, "cos_sim": 0.7213911755103626, "dist": 0.2786088244896374}, "prev_frame_dist": 0.4468564777111026, "prev_frame_dist_breakdown": {"dot": 0.553143528416362, "norm_a": 0.999999959399133, "norm_b": 1.0000000516784004, "cos_sim": 0.5531435222888974, "dist": 0.4468564777111026}, "p_fisica": 0.6700327828664845, "physics_breakdown": {"t_frenado": 4.583333333333333, "t_arranque": 18.333333333333332, "t_maniobra": 90, "t_req": 112.91666666666666, "t_sobra": 7.083333333333343, "v_prev": 9.166666666666666, "v_curr": 9.166666666666666, "a_decel": 2.0, "a_accel": 0.5, "v_max": 9.166666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 33.0, "delta_t": 120, "memory_size": 4, "memory_frame_idx": [16, 13, 17, 18], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1776437916000_4.jpeg", "local_path": "images/1867131776405754/1776437916000_4.jpeg"}, {"frame_idx": 19, "ts_seconds": 1776437976, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.2705795331671137, "dist_mem_breakdown": {"dot": 0.6230098226268206, "norm_a": 0.8541161710435746, "norm_b": 1.000000010296305, "cos_sim": 0.7294204668328863, "dist": 0.2705795331671137}, "prev_frame_dist": 0.14561198254879826, "prev_frame_dist_breakdown": {"dot": 0.8543880704016478, "norm_a": 1.0000000516784004, "norm_b": 1.000000010296305, "cos_sim": 0.8543880174512017, "dist": 0.14561198254879826}, "p_fisica": 0.017742529864733732, "physics_breakdown": {"t_frenado": 4.583333333333333, "t_arranque": 5.555555555555555, "t_maniobra": 90, "t_req": 100.13888888888889, "t_sobra": -40.138888888888886, "v_prev": 9.166666666666666, "v_curr": 2.7777777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 9.166666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 10.0, "delta_t": 60, "memory_size": 5, "memory_frame_idx": [16, 13, 17, 18, 19], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1776437976000_4.jpeg", "local_path": "images/1867131776405754/1776437976000_4.jpeg"}, {"frame_idx": 20, "ts_seconds": 1776438156, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.2560544352758658, "dist_mem_breakdown": {"dot": 0.6252031264637787, "norm_a": 0.8403882326595812, "norm_b": 1.0000000449939062, "cos_sim": 0.7439455647241342, "dist": 0.2560544352758658}, "prev_frame_dist": 0.22854531314179882, "prev_frame_dist_breakdown": {"dot": 0.771454729512094, "norm_a": 1.000000010296305, "norm_b": 1.0000000449939062, "cos_sim": 0.7714546868582012, "dist": 0.22854531314179882}, "p_fisica": 0.9999967566121193, "physics_breakdown": {"t_frenado": 1.3888888888888888, "t_arranque": 7.222222222222222, "t_maniobra": 45, "t_req": 53.61111111111111, "t_sobra": 126.38888888888889, "v_prev": 2.7777777777777777, "v_curr": 3.611111111111111, "a_decel": 2.0, "a_accel": 0.5, "v_max": 3.611111111111111, "t_maniobra_reason": "v_max < 5.0 m/s (vehiculo lento)"}, "speed": 13.0, "delta_t": 180, "memory_size": 6, "memory_frame_idx": [16, 13, 17, 18, 19, 20], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1776438156000_4.jpeg", "local_path": "images/1867131776405754/1776438156000_4.jpeg"}]}, {"case_id": "tp2", "kind": "correcto", "titulo": "Cambio real detectado correctamente #2", "gt_label": "CAMBIO_REAL (confirmado por revision manual, identity_id crudo corregido de Identity_3 a Identity_4 en frames [1,93])", "trip_id": "1211261784361700", "dataset": "reviewed_07", "alert_frame": 4, "n_total_frames": 94, "frames": [{"frame_idx": 0, "ts_seconds": 1784367420, "decision": "INICIO_VIAJE", "dist_mem": null, "dist_mem_breakdown": null, "prev_frame_dist": null, "prev_frame_dist_breakdown": null, "p_fisica": null, "physics_breakdown": null, "speed": 32.0, "delta_t": null, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1784367420000_4.jpeg", "local_path": "images/1211261784361700/1784367420000_4.jpeg"}, {"frame_idx": 1, "ts_seconds": 1784383860, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9109949006962067, "dist_mem_breakdown": {"dot": 0.08900509898619006, "norm_a": 1.0000000045519217, "norm_b": 0.9999999918797066, "cos_sim": 0.08900509930379334, "dist": 0.9109949006962067}, "prev_frame_dist": 0.9109949006962067, "prev_frame_dist_breakdown": {"dot": 0.08900509898619006, "norm_a": 1.0000000045519217, "norm_b": 0.9999999918797066, "cos_sim": 0.08900509930379334, "dist": 0.9109949006962067}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 4.444444444444445, "t_arranque": 10.555555555555555, "t_maniobra": 90, "t_req": 105.0, "t_sobra": 16335.0, "v_prev": 8.88888888888889, "v_curr": 5.277777777777778, "a_decel": 2.0, "a_accel": 0.5, "v_max": 8.88888888888889, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 19.0, "delta_t": 16440, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": [1], "pending_dists": [0.911], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.9109949006962067, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1784383860000_4.jpeg", "local_path": "images/1211261784361700/1784383860000_4.jpeg"}, {"frame_idx": 2, "ts_seconds": 1784383980, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8254193551874663, "dist_mem_breakdown": {"dot": 0.17458064311542523, "norm_a": 1.0000000045519217, "norm_b": 0.9999999857270214, "cos_sim": 0.17458064481253363, "dist": 0.8254193551874663}, "prev_frame_dist": 0.33916496925190354, "prev_frame_dist_breakdown": {"dot": 0.660835015949838, "norm_a": 0.9999999918797066, "norm_b": 0.9999999857270214, "cos_sim": 0.6608350307480965, "dist": 0.33916496925190354}, "p_fisica": 0.6999841157450705, "physics_breakdown": {"t_frenado": 2.638888888888889, "t_arranque": 18.88888888888889, "t_maniobra": 90, "t_req": 111.52777777777777, "t_sobra": 8.472222222222229, "v_prev": 5.277777777777778, "v_curr": 9.444444444444445, "a_decel": 2.0, "a_accel": 0.5, "v_max": 9.444444444444445, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 34.0, "delta_t": 120, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": [1, 2], "pending_dists": [0.911, 0.8254], "coherent_local": [0, 1], "support": 2, "avg_dist_vs_old": 0.8682071279418365, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1784383980000_4.jpeg", "local_path": "images/1211261784361700/1784383980000_4.jpeg"}, {"frame_idx": 3, "ts_seconds": 1784384100, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.7646139052028034, "dist_mem_breakdown": {"dot": 0.2353861140968723, "norm_a": 1.0000000045519217, "norm_b": 1.0000000774396487, "cos_sim": 0.23538609479719663, "dist": 0.7646139052028034}, "prev_frame_dist": 0.25306063062997386, "prev_frame_dist_breakdown": {"dot": 0.746939416551698, "norm_a": 0.9999999857270214, "norm_b": 1.0000000774396487, "cos_sim": 0.7469393693700261, "dist": 0.25306063062997386}, "p_fisica": 0.5208212853727429, "physics_breakdown": {"t_frenado": 4.722222222222222, "t_arranque": 24.444444444444443, "t_maniobra": 90, "t_req": 119.16666666666667, "t_sobra": 0.8333333333333286, "v_prev": 9.444444444444445, "v_curr": 12.222222222222221, "a_decel": 2.0, "a_accel": 0.5, "v_max": 12.222222222222221, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 44.0, "delta_t": 120, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": [1, 2, 3], "pending_dists": [0.911, 0.8254, 0.7646], "coherent_local": [0, 1, 2], "support": 3, "avg_dist_vs_old": 0.8336760536954921, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": false}, "basename": "1784384100000_4.jpeg", "local_path": "images/1211261784361700/1784384100000_4.jpeg"}, {"frame_idx": 4, "ts_seconds": 1784384580, "decision": "CAMBIO_CONFIRMADO", "dist_mem": 0.9167386709700909, "dist_mem_breakdown": {"dot": 0.08326132666325342, "norm_a": 1.0000000045519217, "norm_b": 0.999999967023649, "cos_sim": 0.08326132902990918, "dist": 0.9167386709700909}, "prev_frame_dist": 0.34663400374853437, "prev_frame_dist_breakdown": {"dot": 0.6533660253022707, "norm_a": 1.0000000774396487, "norm_b": 0.999999967023649, "cos_sim": 0.6533659962514656, "dist": 0.34663400374853437}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 6.111111111111111, "t_arranque": 11.666666666666666, "t_maniobra": 90, "t_req": 107.77777777777779, "t_sobra": 372.22222222222223, "v_prev": 12.222222222222221, "v_curr": 5.833333333333333, "a_decel": 2.0, "a_accel": 0.5, "v_max": 12.222222222222221, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 21.0, "delta_t": 480, "memory_size": 4, "memory_frame_idx": [2, 1, 3, 4], "pending_frames": [1, 2, 3, 4], "pending_dists": [0.911, 0.8254, 0.7646, 0.9167], "coherent_local": [1, 0, 2, 3], "support": 4, "avg_dist_vs_old": 0.8544417080141418, "candidate_frames": [1, 2, 3, 4], "coherent_frames": [2, 1, 3, 4], "confirm_checks": {"support_ok": true, "avg_dist_ok": true, "phys_ok": true}, "basename": "1784384580000_4.jpeg", "local_path": "images/1211261784361700/1784384580000_4.jpeg"}, {"frame_idx": 5, "ts_seconds": 1784384700, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.4864621779832582, "dist_mem_breakdown": {"dot": 0.4495019240363688, "norm_a": 0.8753043800994917, "norm_b": 1.0000000424433384, "cos_sim": 0.5135378220167418, "dist": 0.4864621779832582}, "prev_frame_dist": 0.4423026911724235, "prev_frame_dist_breakdown": {"dot": 0.5576973141072892, "norm_a": 0.999999967023649, "norm_b": 1.0000000424433384, "cos_sim": 0.5576973088275765, "dist": 0.4423026911724235}, "p_fisica": 0.9104746673543183, "physics_breakdown": {"t_frenado": 2.9166666666666665, "t_arranque": 3.888888888888889, "t_maniobra": 90, "t_req": 96.80555555555556, "t_sobra": 23.194444444444443, "v_prev": 5.833333333333333, "v_curr": 1.9444444444444444, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.833333333333333, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 7.0, "delta_t": 120, "memory_size": 5, "memory_frame_idx": [2, 1, 3, 4, 5], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1784384700000_4.jpeg", "local_path": "images/1211261784361700/1784384700000_4.jpeg"}, {"frame_idx": 6, "ts_seconds": 1784385180, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.23203965225319811, "dist_mem_breakdown": {"dot": 0.6305611911746327, "norm_a": 0.821085613132256, "norm_b": 0.999999997119533, "cos_sim": 0.7679603477468019, "dist": 0.23203965225319811}, "prev_frame_dist": 0.5818644338259571, "prev_frame_dist_breakdown": {"dot": 0.4181355827166864, "norm_a": 1.0000000424433384, "norm_b": 0.999999997119533, "cos_sim": 0.41813556617404285, "dist": 0.5818644338259571}, "p_fisica": 0.9999999999999998, "physics_breakdown": {"t_frenado": 0.9722222222222222, "t_arranque": 32.22222222222222, "t_maniobra": 90, "t_req": 123.19444444444446, "t_sobra": 356.80555555555554, "v_prev": 1.9444444444444444, "v_curr": 16.11111111111111, "a_decel": 2.0, "a_accel": 0.5, "v_max": 16.11111111111111, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 58.0, "delta_t": 480, "memory_size": 6, "memory_frame_idx": [2, 1, 3, 4, 5, 6], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1784385180000_4.jpeg", "local_path": "images/1211261784361700/1784385180000_4.jpeg"}, {"frame_idx": 7, "ts_seconds": 1784385420, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.2884880226778176, "dist_mem_breakdown": {"dot": 0.5828822179634063, "norm_a": 0.8192162838195606, "norm_b": 1.000000034326697, "cos_sim": 0.7115119773221824, "dist": 0.2884880226778176}, "prev_frame_dist": 0.38481175972834925, "prev_frame_dist_breakdown": {"dot": 0.6151882596170017, "norm_a": 0.999999997119533, "norm_b": 1.000000034326697, "cos_sim": 0.6151882402716508, "dist": 0.38481175972834925}, "p_fisica": 0.9999889896814741, "physics_breakdown": {"t_frenado": 8.055555555555555, "t_arranque": 27.77777777777778, "t_maniobra": 90, "t_req": 125.83333333333334, "t_sobra": 114.16666666666666, "v_prev": 16.11111111111111, "v_curr": 13.88888888888889, "a_decel": 2.0, "a_accel": 0.5, "v_max": 16.11111111111111, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 50.0, "delta_t": 240, "memory_size": 6, "memory_frame_idx": [1, 3, 4, 5, 6, 7], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1784385420000_4.jpeg", "local_path": "images/1211261784361700/1784385420000_4.jpeg"}, {"frame_idx": 8, "ts_seconds": 1784385457, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.1702759260481681, "dist_mem_breakdown": {"dot": 0.6649085632875127, "norm_a": 0.801361050382639, "norm_b": 1.0000000118177306, "cos_sim": 0.8297240739518319, "dist": 0.1702759260481681}, "prev_frame_dist": 0.3485704691365167, "prev_frame_dist_breakdown": {"dot": 0.6514295609233265, "norm_a": 1.000000034326697, "norm_b": 1.0000000118177306, "cos_sim": 0.6514295308634833, "dist": 0.3485704691365167}, "p_fisica": 0.0001173772578811046, "physics_breakdown": {"t_frenado": 6.944444444444445, "t_arranque": 30.555555555555554, "t_maniobra": 90, "t_req": 127.5, "t_sobra": -90.5, "v_prev": 13.88888888888889, "v_curr": 15.277777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 15.277777777777777, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 55.0, "delta_t": 37, "memory_size": 6, "memory_frame_idx": [3, 4, 5, 6, 7, 8], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1784385457000_4.jpeg", "local_path": "images/1211261784361700/1784385457000_4.jpeg"}]}, {"case_id": "tp3", "kind": "correcto", "titulo": "Cambio real detectado correctamente #3", "gt_label": "CAMBIO_REAL (confirmado por revision manual, identity_id crudo corregido de Identity_4 a Identity_5 en frames [7,57])", "trip_id": "1065661783416050", "dataset": "reviewed_07", "alert_frame": 10, "n_total_frames": 58, "frames": [{"frame_idx": 4, "ts_seconds": 1783427682, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.46581206948587417, "dist_mem_breakdown": {"dot": 0.4691541409482227, "norm_a": 0.8782567149537609, "norm_b": 1.0000000083702527, "cos_sim": 0.5341879305141258, "dist": 0.46581206948587417}, "prev_frame_dist": 0.5933038090953833, "prev_frame_dist_breakdown": {"dot": 0.40669619759862335, "norm_a": 1.0000000080892244, "norm_b": 1.0000000083702527, "cos_sim": 0.40669619090461673, "dist": 0.5933038090953833}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 6.944444444444445, "t_arranque": 8.333333333333334, "t_maniobra": 90, "t_req": 105.27777777777777, "t_sobra": 3991.722222222222, "v_prev": 13.88888888888889, "v_curr": 4.166666666666667, "a_decel": 2.0, "a_accel": 0.5, "v_max": 13.88888888888889, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 15.0, "delta_t": 4097, "memory_size": 5, "memory_frame_idx": [0, 1, 2, 3, 4], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1783427682000_4.jpeg", "local_path": "images/1065661783416050/1783427682000_4.jpeg"}, {"frame_idx": 5, "ts_seconds": 1783435602, "decision": "POSIBLE_CAMBIO", "dist_mem": 1.0166379460114323, "dist_mem_breakdown": {"dot": -0.013758119670927146, "norm_a": 0.8269121080769886, "norm_b": 1.000000048011112, "cos_sim": -0.016637946011432234, "dist": 1.0166379460114323}, "prev_frame_dist": 0.944731957877212, "prev_frame_dist_breakdown": {"dot": 0.05526804523887573, "norm_a": 1.0000000083702527, "norm_b": 1.000000048011112, "cos_sim": 0.05526804212278807, "dist": 0.944731957877212}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 2.0833333333333335, "t_arranque": 16.11111111111111, "t_maniobra": 90, "t_req": 108.19444444444444, "t_sobra": 7811.805555555556, "v_prev": 4.166666666666667, "v_curr": 8.055555555555555, "a_decel": 2.0, "a_accel": 0.5, "v_max": 8.055555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 29.0, "delta_t": 7920, "memory_size": 5, "memory_frame_idx": [0, 1, 2, 3, 4], "pending_frames": [5], "pending_dists": [1.0166], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 1.0166379460114323, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1783435602000_4.jpeg", "local_path": "images/1065661783416050/1783435602000_4.jpeg"}, {"frame_idx": 6, "ts_seconds": 1783435722, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9854696061231583, "dist_mem_breakdown": {"dot": 0.012015358508577063, "norm_a": 0.8269121080769886, "norm_b": 0.999999989737206, "cos_sim": 0.014530393876841791, "dist": 0.9854696061231583}, "prev_frame_dist": 0.2218188500765338, "prev_frame_dist_breakdown": {"dot": 0.7781811792984954, "norm_a": 1.000000048011112, "norm_b": 0.999999989737206, "cos_sim": 0.7781811499234662, "dist": 0.2218188500765338}, "p_fisica": 0.9009953549417534, "physics_breakdown": {"t_frenado": 4.027777777777778, "t_arranque": 3.888888888888889, "t_maniobra": 90, "t_req": 97.91666666666666, "t_sobra": 22.083333333333343, "v_prev": 8.055555555555555, "v_curr": 1.9444444444444444, "a_decel": 2.0, "a_accel": 0.5, "v_max": 8.055555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 7.0, "delta_t": 120, "memory_size": 5, "memory_frame_idx": [0, 1, 2, 3, 4], "pending_frames": [5, 6], "pending_dists": [1.0166, 0.9855], "coherent_local": [0, 1], "support": 2, "avg_dist_vs_old": 1.0010537760672953, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1783435722000_4.jpeg", "local_path": "images/1065661783416050/1783435722000_4.jpeg"}, {"frame_idx": 7, "ts_seconds": 1783440279, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9335339232505402, "dist_mem_breakdown": {"dot": 0.05496160642216451, "norm_a": 0.8269121080769886, "norm_b": 1.0000000506110012, "cos_sim": 0.0664660767494598, "dist": 0.9335339232505402}, "prev_frame_dist": 0.5830098880581387, "prev_frame_dist_breakdown": {"dot": 0.41699012876666464, "norm_a": 0.999999989737206, "norm_b": 1.0000000506110012, "cos_sim": 0.41699011194186136, "dist": 0.5830098880581387}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 0.9722222222222222, "t_arranque": 5.555555555555555, "t_maniobra": 45, "t_req": 51.52777777777778, "t_sobra": 4505.472222222223, "v_prev": 1.9444444444444444, "v_curr": 2.7777777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 2.7777777777777777, "t_maniobra_reason": "v_max < 5.0 m/s (vehiculo lento)"}, "speed": 10.0, "delta_t": 4557, "memory_size": 5, "memory_frame_idx": [0, 1, 2, 3, 4], "pending_frames": [5, 6, 7], "pending_dists": [1.0166, 0.9855, 0.9335], "coherent_local": [0, 1], "support": 2, "avg_dist_vs_old": 1.0010537760672953, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1783440279000_4.jpeg", "local_path": "images/1065661783416050/1783440279000_4.jpeg"}, {"frame_idx": 8, "ts_seconds": 1783440519, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9525378845164287, "dist_mem_breakdown": {"dot": 0.03924699984353794, "norm_a": 0.8269121080769886, "norm_b": 1.000000047780076, "cos_sim": 0.047462115483571266, "dist": 0.9525378845164287}, "prev_frame_dist": 0.43093094521261543, "prev_frame_dist_breakdown": {"dot": 0.5690691107787031, "norm_a": 1.0000000506110012, "norm_b": 1.000000047780076, "cos_sim": 0.5690690547873846, "dist": 0.43093094521261543}, "p_fisica": 0.9999999931946417, "physics_breakdown": {"t_frenado": 1.3888888888888888, "t_arranque": 5.555555555555555, "t_maniobra": 45, "t_req": 51.94444444444444, "t_sobra": 188.05555555555554, "v_prev": 2.7777777777777777, "v_curr": 2.7777777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 2.7777777777777777, "t_maniobra_reason": "v_max < 5.0 m/s (vehiculo lento)"}, "speed": 10.0, "delta_t": 240, "memory_size": 5, "memory_frame_idx": [0, 1, 2, 3, 4], "pending_frames": [5, 6, 7, 8], "pending_dists": [1.0166, 0.9855, 0.9335, 0.9525], "coherent_local": [0, 1], "support": 2, "avg_dist_vs_old": 1.0010537760672953, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1783440519000_4.jpeg", "local_path": "images/1065661783416050/1783440519000_4.jpeg"}, {"frame_idx": 9, "ts_seconds": 1783440879, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9597123571402875, "dist_mem_breakdown": {"dot": 0.03331434044717995, "norm_a": 0.8269121080769886, "norm_b": 1.000000022831075, "cos_sim": 0.04028764285971258, "dist": 0.9597123571402875}, "prev_frame_dist": 0.16835735116997208, "prev_frame_dist_breakdown": {"dot": 0.8316427075532734, "norm_a": 1.000000047780076, "norm_b": 1.000000022831075, "cos_sim": 0.8316426488300279, "dist": 0.16835735116997208}, "p_fisica": 0.9999999999999416, "physics_breakdown": {"t_frenado": 1.3888888888888888, "t_arranque": 8.88888888888889, "t_maniobra": 45, "t_req": 55.27777777777777, "t_sobra": 304.72222222222223, "v_prev": 2.7777777777777777, "v_curr": 4.444444444444445, "a_decel": 2.0, "a_accel": 0.5, "v_max": 4.444444444444445, "t_maniobra_reason": "v_max < 5.0 m/s (vehiculo lento)"}, "speed": 16.0, "delta_t": 360, "memory_size": 5, "memory_frame_idx": [0, 1, 2, 3, 4], "pending_frames": [6, 7, 8, 9], "pending_dists": [0.9855, 0.9335, 0.9525, 0.9597], "coherent_local": [2, 3], "support": 2, "avg_dist_vs_old": 0.9561251208283581, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1783440879000_4.jpeg", "local_path": "images/1065661783416050/1783440879000_4.jpeg"}, {"frame_idx": 10, "ts_seconds": 1783441119, "decision": "CAMBIO_CONFIRMADO", "dist_mem": 0.9655557026523005, "dist_mem_breakdown": {"dot": 0.028482407331181493, "norm_a": 0.8269121080769886, "norm_b": 1.0000000280932961, "cos_sim": 0.03444429734769949, "dist": 0.9655557026523005}, "prev_frame_dist": 0.12304932768431487, "prev_frame_dist_breakdown": {"dot": 0.8769507169738473, "norm_a": 1.000000022831075, "norm_b": 1.0000000280932961, "cos_sim": 0.8769506723156851, "dist": 0.12304932768431487}, "p_fisica": 0.999998961547378, "physics_breakdown": {"t_frenado": 2.2222222222222223, "t_arranque": 10.0, "t_maniobra": 90, "t_req": 102.22222222222223, "t_sobra": 137.77777777777777, "v_prev": 4.444444444444445, "v_curr": 5.0, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.0, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 18.0, "delta_t": 240, "memory_size": 3, "memory_frame_idx": [8, 9, 10], "pending_frames": [7, 8, 9, 10], "pending_dists": [0.9335, 0.9525, 0.9597, 0.9656], "coherent_local": [1, 2, 3], "support": 3, "avg_dist_vs_old": 0.9592686481030056, "candidate_frames": [7, 8, 9, 10], "coherent_frames": [8, 9, 10], "confirm_checks": {"support_ok": true, "avg_dist_ok": true, "phys_ok": true}, "basename": "1783441119000_4.jpeg", "local_path": "images/1065661783416050/1783441119000_4.jpeg"}, {"frame_idx": 11, "ts_seconds": 1783441239, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.10533236057795925, "dist_mem_breakdown": {"dot": 0.8528903774804315, "norm_a": 0.9533041207106853, "norm_b": 1.000000035353781, "cos_sim": 0.8946676394220408, "dist": 0.10533236057795925}, "prev_frame_dist": 0.10089752338852964, "prev_frame_dist_breakdown": {"dot": 0.8991025336568954, "norm_a": 1.0000000280932961, "norm_b": 1.000000035353781, "cos_sim": 0.8991024766114704, "dist": 0.10089752338852964}, "p_fisica": 0.786768489162473, "physics_breakdown": {"t_frenado": 2.5, "t_arranque": 14.444444444444445, "t_maniobra": 90, "t_req": 106.94444444444444, "t_sobra": 13.055555555555557, "v_prev": 5.0, "v_curr": 7.222222222222222, "a_decel": 2.0, "a_accel": 0.5, "v_max": 7.222222222222222, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 26.0, "delta_t": 120, "memory_size": 4, "memory_frame_idx": [8, 9, 10, 11], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1783441239000_4.jpeg", "local_path": "images/1065661783416050/1783441239000_4.jpeg"}, {"frame_idx": 12, "ts_seconds": 1783441359, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.6121505099647937, "dist_mem_breakdown": {"dot": 0.3666209005221356, "norm_a": 0.9452658704917994, "norm_b": 1.000000040107387, "cos_sim": 0.38784949003520636, "dist": 0.6121505099647937}, "prev_frame_dist": 0.6476577217737028, "prev_frame_dist_breakdown": {"dot": 0.3523423048144575, "norm_a": 1.000000035353781, "norm_b": 1.000000040107387, "cos_sim": 0.35234227822629716, "dist": 0.6476577217737028}, "p_fisica": 0.8296760813561542, "physics_breakdown": {"t_frenado": 3.611111111111111, "t_arranque": 10.555555555555555, "t_maniobra": 90, "t_req": 104.16666666666667, "t_sobra": 15.833333333333329, "v_prev": 7.222222222222222, "v_curr": 5.277777777777778, "a_decel": 2.0, "a_accel": 0.5, "v_max": 7.222222222222222, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 19.0, "delta_t": 120, "memory_size": 4, "memory_frame_idx": [8, 9, 10, 11], "pending_frames": [12], "pending_dists": [0.6122], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.6121505099647937, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": true}, "basename": "1783441359000_4.jpeg", "local_path": "images/1065661783416050/1783441359000_4.jpeg"}, {"frame_idx": 13, "ts_seconds": 1783441479, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.36680442588618145, "dist_mem_breakdown": {"dot": 0.5985381806395877, "norm_a": 0.9452658704917994, "norm_b": 1.0000000252002883, "cos_sim": 0.6331955741138185, "dist": 0.36680442588618145}, "prev_frame_dist": 0.6645087767005531, "prev_frame_dist_breakdown": {"dot": 0.3354912452095991, "norm_a": 1.000000040107387, "norm_b": 1.0000000252002883, "cos_sim": 0.33549122329944686, "dist": 0.6645087767005531}, "p_fisica": 0.2716808899852011, "physics_breakdown": {"t_frenado": 2.638888888888889, "t_arranque": 37.22222222222222, "t_maniobra": 90, "t_req": 129.86111111111111, "t_sobra": -9.861111111111114, "v_prev": 5.277777777777778, "v_curr": 18.61111111111111, "a_decel": 2.0, "a_accel": 0.5, "v_max": 18.61111111111111, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 67.0, "delta_t": 120, "memory_size": 5, "memory_frame_idx": [8, 9, 10, 11, 13], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1783441479000_4.jpeg", "local_path": "images/1065661783416050/1783441479000_4.jpeg"}, {"frame_idx": 14, "ts_seconds": 1783441599, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.13276603063602888, "dist_mem_breakdown": {"dot": 0.7773193293063874, "norm_a": 0.8963201782886111, "norm_b": 1.0000000299338156, "cos_sim": 0.8672339693639711, "dist": 0.13276603063602888}, "prev_frame_dist": 0.40150913095300067, "prev_frame_dist_breakdown": {"dot": 0.5984909020442575, "norm_a": 1.0000000252002883, "norm_b": 1.0000000299338156, "cos_sim": 0.5984908690469993, "dist": 0.40150913095300067}, "p_fisica": 0.2716808899852011, "physics_breakdown": {"t_frenado": 9.305555555555555, "t_arranque": 30.555555555555554, "t_maniobra": 90, "t_req": 129.86111111111111, "t_sobra": -9.861111111111114, "v_prev": 18.61111111111111, "v_curr": 15.277777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 18.61111111111111, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 55.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [8, 9, 10, 11, 13, 14], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1783441599000_4.jpeg", "local_path": "images/1065661783416050/1783441599000_4.jpeg"}]}, {"case_id": "fp1", "kind": "fp", "titulo": "Falso positivo confirmado #1 (misma persona)", "gt_label": "MISMA PERSONA (revision manual humana, causa: variabilidad de embedding, no confusion de identidad)", "trip_id": "1866621775112847", "dataset": "random_04", "alert_frame": 4, "n_total_frames": 110, "frames": [{"frame_idx": 0, "ts_seconds": 1775112909, "decision": "INICIO_VIAJE", "dist_mem": null, "dist_mem_breakdown": null, "prev_frame_dist": null, "prev_frame_dist_breakdown": null, "p_fisica": null, "physics_breakdown": null, "speed": 10.0, "delta_t": null, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775112909000_4.jpeg", "local_path": "images/1866621775112847/1775112909000_4.jpeg"}, {"frame_idx": 1, "ts_seconds": 1775119149, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9743995037245295, "dist_mem_breakdown": {"dot": 0.025600496787755264, "norm_a": 0.9999999954901475, "norm_b": 1.0000000245205898, "cos_sim": 0.02560049627547046, "dist": 0.9743995037245295}, "prev_frame_dist": 0.9743995037245295, "prev_frame_dist_breakdown": {"dot": 0.025600496787755264, "norm_a": 0.9999999954901475, "norm_b": 1.0000000245205898, "cos_sim": 0.02560049627547046, "dist": 0.9743995037245295}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 1.3888888888888888, "t_arranque": 4.78333314259847, "t_maniobra": 45, "t_req": 51.17222203148736, "t_sobra": 6188.827777968512, "v_prev": 2.7777777777777777, "v_curr": 2.391666571299235, "a_decel": 2.0, "a_accel": 0.5, "v_max": 2.7777777777777777, "t_maniobra_reason": "v_max < 5.0 m/s (vehiculo lento)"}, "speed": 8.609999656677246, "delta_t": 6240, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": [1], "pending_dists": [0.9744], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.9743995037245295, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1775119149000_4.jpeg", "local_path": "images/1866621775112847/1775119149000_4.jpeg"}, {"frame_idx": 2, "ts_seconds": 1775120229, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9053700657750423, "dist_mem_breakdown": {"dot": 0.0946299324244033, "norm_a": 0.9999999954901475, "norm_b": 0.9999999854825293, "cos_sim": 0.09462993422495763, "dist": 0.9053700657750423}, "prev_frame_dist": 0.4502469898782818, "prev_frame_dist_breakdown": {"dot": 0.5497530156209628, "norm_a": 1.0000000245205898, "norm_b": 0.9999999854825293, "cos_sim": 0.5497530101217182, "dist": 0.4502469898782818}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 1.1958332856496174, "t_arranque": 4.444444444444445, "t_maniobra": 45, "t_req": 50.64027773009406, "t_sobra": 1029.359722269906, "v_prev": 2.391666571299235, "v_curr": 2.2222222222222223, "a_decel": 2.0, "a_accel": 0.5, "v_max": 2.391666571299235, "t_maniobra_reason": "v_max < 5.0 m/s (vehiculo lento)"}, "speed": 8.0, "delta_t": 1080, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": [1, 2], "pending_dists": [0.9744, 0.9054], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.9743995037245295, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1775120229000_4.jpeg", "local_path": "images/1866621775112847/1775120229000_4.jpeg"}, {"frame_idx": 3, "ts_seconds": 1775120409, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9579772265820801, "dist_mem_breakdown": {"dot": 0.042022773858025775, "norm_a": 0.9999999954901475, "norm_b": 1.0000000149828854, "cos_sim": 0.042022773417919886, "dist": 0.9579772265820801}, "prev_frame_dist": 0.5086262008195666, "prev_frame_dist_breakdown": {"dot": 0.49137379940912596, "norm_a": 0.9999999854825293, "norm_b": 1.0000000149828854, "cos_sim": 0.4913737991804334, "dist": 0.5086262008195666}, "p_fisica": 0.9993822994595262, "physics_breakdown": {"t_frenado": 1.1111111111111112, "t_arranque": 15.0, "t_maniobra": 90, "t_req": 106.11111111111111, "t_sobra": 73.88888888888889, "v_prev": 2.2222222222222223, "v_curr": 7.5, "a_decel": 2.0, "a_accel": 0.5, "v_max": 7.5, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 27.0, "delta_t": 180, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": [1, 2, 3], "pending_dists": [0.9744, 0.9054, 0.958], "coherent_local": [0, 2], "support": 2, "avg_dist_vs_old": 0.9661883651533048, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1775120409000_4.jpeg", "local_path": "images/1866621775112847/1775120409000_4.jpeg"}, {"frame_idx": 4, "ts_seconds": 1775121129, "decision": "CAMBIO_CONFIRMADO", "dist_mem": 0.9569904747837212, "dist_mem_breakdown": {"dot": 0.043009527154053886, "norm_a": 0.9999999954901475, "norm_b": 1.0000000495644104, "cos_sim": 0.04300952521627875, "dist": 0.9569904747837212}, "prev_frame_dist": 0.2195223349528076, "prev_frame_dist_breakdown": {"dot": 0.7804777154249156, "norm_a": 1.0000000149828854, "norm_b": 1.0000000495644104, "cos_sim": 0.7804776650471924, "dist": 0.2195223349528076}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 3.75, "t_arranque": 26.11111111111111, "t_maniobra": 90, "t_req": 119.86111111111111, "t_sobra": 600.1388888888889, "v_prev": 7.5, "v_curr": 13.055555555555555, "a_decel": 2.0, "a_accel": 0.5, "v_max": 13.055555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 47.0, "delta_t": 720, "memory_size": 3, "memory_frame_idx": [1, 3, 4], "pending_frames": [1, 2, 3, 4], "pending_dists": [0.9744, 0.9054, 0.958, 0.957], "coherent_local": [0, 2, 3], "support": 3, "avg_dist_vs_old": 0.9631224016967769, "candidate_frames": [1, 2, 3, 4], "coherent_frames": [1, 3, 4], "confirm_checks": {"support_ok": true, "avg_dist_ok": true, "phys_ok": true}, "basename": "1775121129000_4.jpeg", "local_path": "images/1866621775112847/1775121129000_4.jpeg"}, {"frame_idx": 5, "ts_seconds": 1775121249, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.2344594273434628, "dist_mem_breakdown": {"dot": 0.6971986859302617, "norm_a": 0.9107272081266704, "norm_b": 1.0000000824543807, "cos_sim": 0.7655405726565372, "dist": 0.2344594273434628}, "prev_frame_dist": 0.2251980899338405, "prev_frame_dist_breakdown": {"dot": 0.774802012354574, "norm_a": 1.0000000495644104, "norm_b": 1.0000000824543807, "cos_sim": 0.7748019100661595, "dist": 0.2251980899338405}, "p_fisica": 0.7650476794275531, "physics_breakdown": {"t_frenado": 6.527777777777778, "t_arranque": 11.666666666666666, "t_maniobra": 90, "t_req": 108.19444444444444, "t_sobra": 11.805555555555557, "v_prev": 13.055555555555555, "v_curr": 5.833333333333333, "a_decel": 2.0, "a_accel": 0.5, "v_max": 13.055555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 21.0, "delta_t": 120, "memory_size": 4, "memory_frame_idx": [1, 3, 4, 5], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775121249000_4.jpeg", "local_path": "images/1866621775112847/1775121249000_4.jpeg"}, {"frame_idx": 6, "ts_seconds": 1775121549, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.30622722425015914, "dist_mem_breakdown": {"dot": 0.6168340940163172, "norm_a": 0.889100975321776, "norm_b": 1.0000000688117618, "cos_sim": 0.6937727757498409, "dist": 0.30622722425015914}, "prev_frame_dist": 0.47525076823099677, "prev_frame_dist_breakdown": {"dot": 0.5247493111457984, "norm_a": 1.0000000824543807, "norm_b": 1.0000000688117618, "cos_sim": 0.5247492317690032, "dist": 0.47525076823099677}, "p_fisica": 0.9999999916183601, "physics_breakdown": {"t_frenado": 2.9166666666666665, "t_arranque": 21.11111111111111, "t_maniobra": 90, "t_req": 114.02777777777779, "t_sobra": 185.97222222222223, "v_prev": 5.833333333333333, "v_curr": 10.555555555555555, "a_decel": 2.0, "a_accel": 0.5, "v_max": 10.555555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 38.0, "delta_t": 300, "memory_size": 5, "memory_frame_idx": [1, 3, 4, 5, 6], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775121549000_4.jpeg", "local_path": "images/1866621775112847/1775121549000_4.jpeg"}, {"frame_idx": 7, "ts_seconds": 1775121789, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.559337560624708, "dist_mem_breakdown": {"dot": 0.37991831874258136, "norm_a": 0.8621526917859551, "norm_b": 1.0000000275485752, "cos_sim": 0.44066243937529204, "dist": 0.559337560624708}, "prev_frame_dist": 0.474715469421487, "prev_frame_dist_breakdown": {"dot": 0.5252845811951085, "norm_a": 1.0000000688117618, "norm_b": 1.0000000275485752, "cos_sim": 0.525284530578513, "dist": 0.474715469421487}, "p_fisica": 0.9999954734933825, "physics_breakdown": {"t_frenado": 5.277777777777778, "t_arranque": 21.666666666666668, "t_maniobra": 90, "t_req": 116.94444444444444, "t_sobra": 123.05555555555556, "v_prev": 10.555555555555555, "v_curr": 10.833333333333334, "a_decel": 2.0, "a_accel": 0.5, "v_max": 10.833333333333334, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 39.0, "delta_t": 240, "memory_size": 5, "memory_frame_idx": [1, 3, 4, 5, 6], "pending_frames": [7], "pending_dists": [0.5593], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.559337560624708, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775121789000_4.jpeg", "local_path": "images/1866621775112847/1775121789000_4.jpeg"}, {"frame_idx": 8, "ts_seconds": 1775121969, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.1362979565536816, "dist_mem_breakdown": {"dot": 0.7446430650176172, "norm_a": 0.8621526917859551, "norm_b": 1.0000000313698545, "cos_sim": 0.8637020434463184, "dist": 0.1362979565536816}, "prev_frame_dist": 0.6287617414406639, "prev_frame_dist_breakdown": {"dot": 0.3712382804321117, "norm_a": 1.0000000275485752, "norm_b": 1.0000000313698545, "cos_sim": 0.3712382585593361, "dist": 0.6287617414406639}, "p_fisica": 0.9857424863793548, "physics_breakdown": {"t_frenado": 5.416666666666667, "t_arranque": 42.22222222222222, "t_maniobra": 90, "t_req": 137.63888888888889, "t_sobra": 42.361111111111114, "v_prev": 10.833333333333334, "v_curr": 21.11111111111111, "a_decel": 2.0, "a_accel": 0.5, "v_max": 21.11111111111111, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 76.0, "delta_t": 180, "memory_size": 6, "memory_frame_idx": [1, 3, 4, 5, 6, 8], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775121969000_4.jpeg", "local_path": "images/1866621775112847/1775121969000_4.jpeg"}]}, {"case_id": "fp2", "kind": "fp", "titulo": "Falso positivo confirmado #2 (misma persona, distancia baja)", "gt_label": "MISMA PERSONA (revision manual humana)", "trip_id": "1052671784811920", "dataset": "reviewed_07", "alert_frame": 61, "n_total_frames": 69, "frames": [{"frame_idx": 49, "ts_seconds": 1784831899, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8067844261511958, "dist_mem_breakdown": {"dot": 0.16357177292572836, "norm_a": 0.8465765563144639, "norm_b": 0.9999999864920748, "cos_sim": 0.1932155738488042, "dist": 0.8067844261511958}, "prev_frame_dist": 0.2643942754503463, "prev_frame_dist_breakdown": {"dot": 0.7356057610844365, "norm_a": 1.000000063174183, "norm_b": 0.9999999864920748, "cos_sim": 0.7356057245496537, "dist": 0.2643942754503463}, "p_fisica": 0.8604994514239533, "physics_breakdown": {"t_frenado": 4.583333333333333, "t_arranque": 7.222222222222222, "t_maniobra": 90, "t_req": 101.80555555555556, "t_sobra": 18.194444444444443, "v_prev": 9.166666666666666, "v_curr": 3.611111111111111, "a_decel": 2.0, "a_accel": 0.5, "v_max": 9.166666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 13.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [46, 47, 48, 49], "pending_dists": [0.7324, 0.9839, 0.7624, 0.8068], "coherent_local": [0, 2, 3], "support": 3, "avg_dist_vs_old": 0.7672034115060837, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784831899000_4.jpeg", "local_path": "images/1052671784811920/1784831899000_4.jpeg"}, {"frame_idx": 50, "ts_seconds": 1784832139, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9864974447235605, "dist_mem_breakdown": {"dot": 0.011430947277746944, "norm_a": 0.8465765563144639, "norm_b": 1.000000046398003, "cos_sim": 0.013502555276439496, "dist": 0.9864974447235605}, "prev_frame_dist": 0.8601268829858107, "prev_frame_dist_breakdown": {"dot": 0.13987312161462684, "norm_a": 0.9999999864920748, "norm_b": 1.000000046398003, "cos_sim": 0.13987311701418922, "dist": 0.8601268829858107}, "p_fisica": 0.9999971377191507, "physics_breakdown": {"t_frenado": 1.8055555555555556, "t_arranque": 20.555555555555554, "t_maniobra": 90, "t_req": 112.36111111111111, "t_sobra": 127.63888888888889, "v_prev": 3.611111111111111, "v_curr": 10.277777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 10.277777777777777, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 37.0, "delta_t": 240, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [47, 48, 49, 50], "pending_dists": [0.9839, 0.7624, 0.8068, 0.9865], "coherent_local": [0, 3], "support": 2, "avg_dist_vs_old": 0.9851834057690899, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1784832139000_4.jpeg", "local_path": "images/1052671784811920/1784832139000_4.jpeg"}, {"frame_idx": 51, "ts_seconds": 1784832379, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.7808940626983969, "dist_mem_breakdown": {"dot": 0.185489941579219, "norm_a": 0.8465765563144639, "norm_b": 0.9999999553095733, "cos_sim": 0.2191059373016031, "dist": 0.7808940626983969}, "prev_frame_dist": 0.8744918174259708, "prev_frame_dist_breakdown": {"dot": 0.12550818278834366, "norm_a": 1.000000046398003, "norm_b": 0.9999999553095733, "cos_sim": 0.12550818257402913, "dist": 0.8744918174259708}, "p_fisica": 0.9999913052092205, "physics_breakdown": {"t_frenado": 5.138888888888888, "t_arranque": 28.333333333333332, "t_maniobra": 90, "t_req": 123.47222222222221, "t_sobra": 116.52777777777779, "v_prev": 10.277777777777777, "v_curr": 14.166666666666666, "a_decel": 2.0, "a_accel": 0.5, "v_max": 14.166666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 51.0, "delta_t": 240, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [48, 49, 50, 51], "pending_dists": [0.7624, 0.8068, 0.9865, 0.7809], "coherent_local": [0, 1, 3], "support": 3, "avg_dist_vs_old": 0.7833760613626399, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784832379000_4.jpeg", "local_path": "images/1052671784811920/1784832379000_4.jpeg"}, {"frame_idx": 52, "ts_seconds": 1784832499, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.7241793344500433, "dist_mem_breakdown": {"dot": 0.23350331770456997, "norm_a": 0.8465765563144639, "norm_b": 1.0000000364145767, "cos_sim": 0.27582066554995666, "dist": 0.7241793344500433}, "prev_frame_dist": 0.1757460612809537, "prev_frame_dist_breakdown": {"dot": 0.824253931897643, "norm_a": 0.9999999553095733, "norm_b": 1.0000000364145767, "cos_sim": 0.8242539387190463, "dist": 0.1757460612809537}, "p_fisica": 0.8571314931872756, "physics_breakdown": {"t_frenado": 7.083333333333333, "t_arranque": 5.0, "t_maniobra": 90, "t_req": 102.08333333333333, "t_sobra": 17.91666666666667, "v_prev": 14.166666666666666, "v_curr": 2.5, "a_decel": 2.0, "a_accel": 0.5, "v_max": 14.166666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 9.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [49, 50, 51, 52], "pending_dists": [0.8068, 0.9865, 0.7809, 0.7242], "coherent_local": [2, 0, 3], "support": 3, "avg_dist_vs_old": 0.7706192744332121, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784832499000_4.jpeg", "local_path": "images/1052671784811920/1784832499000_4.jpeg"}, {"frame_idx": 53, "ts_seconds": 1784832619, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.7447318088667811, "dist_mem_breakdown": {"dot": 0.21610407596442838, "norm_a": 0.8465765563144639, "norm_b": 1.0000000452478557, "cos_sim": 0.2552681911332188, "dist": 0.7447318088667811}, "prev_frame_dist": 0.16946726189340022, "prev_frame_dist_breakdown": {"dot": 0.8305328059299246, "norm_a": 1.0000000364145767, "norm_b": 1.0000000452478557, "cos_sim": 0.8305327381065998, "dist": 0.16946726189340022}, "p_fisica": 0.8536960473495822, "physics_breakdown": {"t_frenado": 1.25, "t_arranque": 11.11111111111111, "t_maniobra": 90, "t_req": 102.36111111111111, "t_sobra": 17.638888888888886, "v_prev": 2.5, "v_curr": 5.555555555555555, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.555555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 20.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [50, 51, 52, 53], "pending_dists": [0.9865, 0.7809, 0.7242, 0.7447], "coherent_local": [1, 2, 3], "support": 3, "avg_dist_vs_old": 0.7499350686717404, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784832619000_4.jpeg", "local_path": "images/1052671784811920/1784832619000_4.jpeg"}, {"frame_idx": 54, "ts_seconds": 1784832739, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8583396525677809, "dist_mem_breakdown": {"dot": 0.11992633857890568, "norm_a": 0.8465765563144639, "norm_b": 1.0000000790771062, "cos_sim": 0.14166034743221917, "dist": 0.8583396525677809}, "prev_frame_dist": 0.4106400044368993, "prev_frame_dist_breakdown": {"dot": 0.5893600688352618, "norm_a": 1.0000000452478557, "norm_b": 1.0000000790771062, "cos_sim": 0.5893599955631007, "dist": 0.4106400044368993}, "p_fisica": 0.8175744761936437, "physics_breakdown": {"t_frenado": 2.7777777777777777, "t_arranque": 12.222222222222221, "t_maniobra": 90, "t_req": 105.0, "t_sobra": 15.0, "v_prev": 5.555555555555555, "v_curr": 6.111111111111111, "a_decel": 2.0, "a_accel": 0.5, "v_max": 6.111111111111111, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 22.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [51, 52, 53, 54], "pending_dists": [0.7809, 0.7242, 0.7447, 0.8583], "coherent_local": [0, 1, 2, 3], "support": 4, "avg_dist_vs_old": 0.7770362146457506, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784832739000_4.jpeg", "local_path": "images/1052671784811920/1784832739000_4.jpeg"}, {"frame_idx": 55, "ts_seconds": 1784833099, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.7203421661951488, "dist_mem_breakdown": {"dot": 0.23675178190439344, "norm_a": 0.8465765563144639, "norm_b": 1.0000000676468863, "cos_sim": 0.27965783380485126, "dist": 0.7203421661951488}, "prev_frame_dist": 0.41761156546492173, "prev_frame_dist_breakdown": {"dot": 0.5823885199854377, "norm_a": 1.0000000790771062, "norm_b": 1.0000000676468863, "cos_sim": 0.5823884345350783, "dist": 0.41761156546492173}, "p_fisica": 0.9999999999950309, "physics_breakdown": {"t_frenado": 3.0555555555555554, "t_arranque": 6.666666666666666, "t_maniobra": 90, "t_req": 99.72222222222223, "t_sobra": 260.27777777777777, "v_prev": 6.111111111111111, "v_curr": 3.333333333333333, "a_decel": 2.0, "a_accel": 0.5, "v_max": 6.111111111111111, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 12.0, "delta_t": 360, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [52, 53, 54, 55], "pending_dists": [0.7242, 0.7447, 0.8583, 0.7203], "coherent_local": [0, 1, 2, 3], "support": 4, "avg_dist_vs_old": 0.7618982405199386, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784833099000_4.jpeg", "local_path": "images/1052671784811920/1784833099000_4.jpeg"}, {"frame_idx": 56, "ts_seconds": 1784833219, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.7270818925600475, "dist_mem_breakdown": {"dot": 0.23104607779215175, "norm_a": 0.8465765563144639, "norm_b": 1.0000000270066305, "cos_sim": 0.2729181074399525, "dist": 0.7270818925600475}, "prev_frame_dist": 0.20052430521234865, "prev_frame_dist_breakdown": {"dot": 0.7994757704608388, "norm_a": 1.0000000676468863, "norm_b": 1.0000000270066305, "cos_sim": 0.7994756947876513, "dist": 0.20052430521234865}, "p_fisica": 0.7820712676154848, "physics_breakdown": {"t_frenado": 1.6666666666666665, "t_arranque": 15.555555555555555, "t_maniobra": 90, "t_req": 107.22222222222223, "t_sobra": 12.777777777777771, "v_prev": 3.333333333333333, "v_curr": 7.777777777777778, "a_decel": 2.0, "a_accel": 0.5, "v_max": 7.777777777777778, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 28.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [53, 54, 55, 56], "pending_dists": [0.7447, 0.8583, 0.7203, 0.7271], "coherent_local": [3, 0, 1, 2], "support": 4, "avg_dist_vs_old": 0.7626238800474396, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784833219000_4.jpeg", "local_path": "images/1052671784811920/1784833219000_4.jpeg"}, {"frame_idx": 57, "ts_seconds": 1784833459, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.7039316328390319, "dist_mem_breakdown": {"dot": 0.25064454910090667, "norm_a": 0.8465765563144639, "norm_b": 1.0000000414775765, "cos_sim": 0.296068367160968, "dist": 0.7039316328390319}, "prev_frame_dist": 0.13461401246485816, "prev_frame_dist_breakdown": {"dot": 0.8653860468004159, "norm_a": 1.0000000270066305, "norm_b": 1.0000000414775765, "cos_sim": 0.8653859875351418, "dist": 0.13461401246485816}, "p_fisica": 0.9999968454661461, "physics_breakdown": {"t_frenado": 3.888888888888889, "t_arranque": 19.444444444444443, "t_maniobra": 90, "t_req": 113.33333333333333, "t_sobra": 126.66666666666667, "v_prev": 7.777777777777778, "v_curr": 9.722222222222221, "a_decel": 2.0, "a_accel": 0.5, "v_max": 9.722222222222221, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 35.0, "delta_t": 240, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [54, 55, 56, 57], "pending_dists": [0.8583, 0.7203, 0.7271, 0.7039], "coherent_local": [2, 0, 1, 3], "support": 4, "avg_dist_vs_old": 0.7524238360405022, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784833459000_4.jpeg", "local_path": "images/1052671784811920/1784833459000_4.jpeg"}, {"frame_idx": 58, "ts_seconds": 1784833699, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9122440355533914, "dist_mem_breakdown": {"dot": 0.07429214384213881, "norm_a": 0.8465765563144639, "norm_b": 1.0000000224098309, "cos_sim": 0.08775596444660863, "dist": 0.9122440355533914}, "prev_frame_dist": 0.7138822016134465, "prev_frame_dist_breakdown": {"dot": 0.28611781666587804, "norm_a": 1.0000000414775765, "norm_b": 1.0000000224098309, "cos_sim": 0.28611779838655343, "dist": 0.7138822016134465}, "p_fisica": 0.9999956582217728, "physics_breakdown": {"t_frenado": 4.861111111111111, "t_arranque": 21.666666666666668, "t_maniobra": 90, "t_req": 116.52777777777779, "t_sobra": 123.47222222222221, "v_prev": 9.722222222222221, "v_curr": 10.833333333333334, "a_decel": 2.0, "a_accel": 0.5, "v_max": 10.833333333333334, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 39.0, "delta_t": 240, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [55, 56, 57, 58], "pending_dists": [0.7203, 0.7271, 0.7039, 0.9122], "coherent_local": [0, 1, 2], "support": 3, "avg_dist_vs_old": 0.7171185638647427, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784833699000_4.jpeg", "local_path": "images/1052671784811920/1784833699000_4.jpeg"}, {"frame_idx": 59, "ts_seconds": 1784833819, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9261008707697962, "dist_mem_breakdown": {"dot": 0.06256126973465091, "norm_a": 0.8465765563144639, "norm_b": 0.9999999903503783, "cos_sim": 0.07389912923020384, "dist": 0.9261008707697962}, "prev_frame_dist": 0.32219583078485026, "prev_frame_dist_breakdown": {"dot": 0.6778041778640727, "norm_a": 1.0000000224098309, "norm_b": 0.9999999903503783, "cos_sim": 0.6778041692151497, "dist": 0.32219583078485026}, "p_fisica": 0.8112776300997288, "physics_breakdown": {"t_frenado": 5.416666666666667, "t_arranque": 10.0, "t_maniobra": 90, "t_req": 105.41666666666667, "t_sobra": 14.583333333333329, "v_prev": 10.833333333333334, "v_curr": 5.0, "a_decel": 2.0, "a_accel": 0.5, "v_max": 10.833333333333334, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 18.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [56, 57, 58, 59], "pending_dists": [0.7271, 0.7039, 0.9122, 0.9261], "coherent_local": [0, 1], "support": 2, "avg_dist_vs_old": 0.7155067626995397, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": true}, "basename": "1784833819000_4.jpeg", "local_path": "images/1052671784811920/1784833819000_4.jpeg"}, {"frame_idx": 60, "ts_seconds": 1784833939, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.927379866413346, "dist_mem_breakdown": {"dot": 0.061478505724465095, "norm_a": 0.8465765563144639, "norm_b": 1.0000000506450077, "cos_sim": 0.07262013358665396, "dist": 0.927379866413346}, "prev_frame_dist": 0.3820776212447691, "prev_frame_dist_breakdown": {"dot": 0.6179224040871971, "norm_a": 0.9999999903503783, "norm_b": 1.0000000506450077, "cos_sim": 0.6179223787552309, "dist": 0.3820776212447691}, "p_fisica": 0.3454977507481214, "physics_breakdown": {"t_frenado": 2.5, "t_arranque": 33.888888888888886, "t_maniobra": 90, "t_req": 126.38888888888889, "t_sobra": -6.388888888888886, "v_prev": 5.0, "v_curr": 16.944444444444443, "a_decel": 2.0, "a_accel": 0.5, "v_max": 16.944444444444443, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 61.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [37, 38, 40, 43, 44, 45], "pending_frames": [57, 58, 59, 60], "pending_dists": [0.7039, 0.9122, 0.9261, 0.9274], "coherent_local": [1, 2, 3], "support": 3, "avg_dist_vs_old": 0.9219082575788445, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": true, "phys_ok": false}, "basename": "1784833939000_4.jpeg", "local_path": "images/1052671784811920/1784833939000_4.jpeg"}, {"frame_idx": 61, "ts_seconds": 1784834179, "decision": "CAMBIO_CONFIRMADO", "dist_mem": 0.7191339761261519, "dist_mem_breakdown": {"dot": 0.23777458482050806, "norm_a": 0.8465765563144639, "norm_b": 0.9999999728467609, "cos_sim": 0.2808660238738481, "dist": 0.7191339761261519}, "prev_frame_dist": 0.7809866760028614, "prev_frame_dist_breakdown": {"dot": 0.2190133291421486, "norm_a": 1.0000000506450077, "norm_b": 0.9999999728467609, "cos_sim": 0.21901332399713858, "dist": 0.7809866760028614}, "p_fisica": 0.9999902834154335, "physics_breakdown": {"t_frenado": 8.472222222222221, "t_arranque": 26.11111111111111, "t_maniobra": 90, "t_req": 124.58333333333334, "t_sobra": 115.41666666666666, "v_prev": 16.944444444444443, "v_curr": 13.055555555555555, "a_decel": 2.0, "a_accel": 0.5, "v_max": 16.944444444444443, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 47.0, "delta_t": 240, "memory_size": 3, "memory_frame_idx": [58, 59, 60], "pending_frames": [58, 59, 60, 61], "pending_dists": [0.9122, 0.9261, 0.9274, 0.7191], "coherent_local": [0, 1, 2], "support": 3, "avg_dist_vs_old": 0.9219082575788445, "candidate_frames": [58, 59, 60, 61], "coherent_frames": [58, 59, 60], "confirm_checks": {"support_ok": true, "avg_dist_ok": true, "phys_ok": true}, "basename": "1784834179000_4.jpeg", "local_path": "images/1052671784811920/1784834179000_4.jpeg"}, {"frame_idx": 62, "ts_seconds": 1784834299, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.13924402945465553, "dist_mem_breakdown": {"dot": 0.7633119051844922, "norm_a": 0.8867924761154136, "norm_b": 0.999999982619766, "cos_sim": 0.8607559705453445, "dist": 0.13924402945465553}, "prev_frame_dist": 0.7828811790784101, "prev_frame_dist_breakdown": {"dot": 0.2171188112525348, "norm_a": 0.9999999728467609, "norm_b": 0.999999982619766, "cos_sim": 0.21711882092158988, "dist": 0.7828811790784101}, "p_fisica": 0.22030516813081605, "physics_breakdown": {"t_frenado": 6.527777777777778, "t_arranque": 36.11111111111111, "t_maniobra": 90, "t_req": 132.63888888888889, "t_sobra": -12.638888888888886, "v_prev": 13.055555555555555, "v_curr": 18.055555555555554, "a_decel": 2.0, "a_accel": 0.5, "v_max": 18.055555555555554, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 65.0, "delta_t": 120, "memory_size": 4, "memory_frame_idx": [58, 59, 60, 62], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1784834299000_4.jpeg", "local_path": "images/1052671784811920/1784834299000_4.jpeg"}, {"frame_idx": 63, "ts_seconds": 1784834419, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8062930697001065, "dist_mem_breakdown": {"dot": 0.1722894858340302, "norm_a": 0.8894337896100193, "norm_b": 0.9999999810996713, "cos_sim": 0.19370693029989355, "dist": 0.8062930697001065}, "prev_frame_dist": 0.8197254576611186, "prev_frame_dist_breakdown": {"dot": 0.18027453579841962, "norm_a": 0.999999982619766, "norm_b": 0.9999999810996713, "cos_sim": 0.1802745423388814, "dist": 0.8197254576611186}, "p_fisica": 0.48264586256701136, "physics_breakdown": {"t_frenado": 9.027777777777777, "t_arranque": 21.666666666666668, "t_maniobra": 90, "t_req": 120.69444444444444, "t_sobra": -0.6944444444444429, "v_prev": 18.055555555555554, "v_curr": 10.833333333333334, "a_decel": 2.0, "a_accel": 0.5, "v_max": 18.055555555555554, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 39.0, "delta_t": 120, "memory_size": 4, "memory_frame_idx": [58, 59, 60, 62], "pending_frames": [63], "pending_dists": [0.8063], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.8062930697001065, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": false}, "basename": "1784834419000_4.jpeg", "local_path": "images/1052671784811920/1784834419000_4.jpeg"}, {"frame_idx": 64, "ts_seconds": 1784834539, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.803482261456271, "dist_mem_breakdown": {"dot": 0.17478952370465595, "norm_a": 0.8894337896100193, "norm_b": 1.0000000388245027, "cos_sim": 0.19651773854372903, "dist": 0.803482261456271}, "prev_frame_dist": 0.3340268163739337, "prev_frame_dist_breakdown": {"dot": 0.6659731968950313, "norm_a": 0.9999999810996713, "norm_b": 1.0000000388245027, "cos_sim": 0.6659731836260663, "dist": 0.3340268163739337}, "p_fisica": 0.3808101174457072, "physics_breakdown": {"t_frenado": 5.416666666666667, "t_arranque": 29.444444444444443, "t_maniobra": 90, "t_req": 124.86111111111111, "t_sobra": -4.861111111111114, "v_prev": 10.833333333333334, "v_curr": 14.722222222222221, "a_decel": 2.0, "a_accel": 0.5, "v_max": 14.722222222222221, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 53.0, "delta_t": 120, "memory_size": 4, "memory_frame_idx": [58, 59, 60, 62], "pending_frames": [63, 64], "pending_dists": [0.8063, 0.8035], "coherent_local": [0, 1], "support": 2, "avg_dist_vs_old": 0.8048876655781887, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": false}, "basename": "1784834539000_4.jpeg", "local_path": "images/1052671784811920/1784834539000_4.jpeg"}, {"frame_idx": 65, "ts_seconds": 1784834659, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8000256163792739, "dist_mem_breakdown": {"dot": 0.1778639759341994, "norm_a": 0.8894337896100193, "norm_b": 1.000000011725192, "cos_sim": 0.1999743836207261, "dist": 0.8000256163792739}, "prev_frame_dist": 0.3377405598877087, "prev_frame_dist_breakdown": {"dot": 0.662259473589304, "norm_a": 1.0000000388245027, "norm_b": 1.000000011725192, "cos_sim": 0.6622594401122913, "dist": 0.3377405598877087}, "p_fisica": 0.4965278335930306, "physics_breakdown": {"t_frenado": 7.361111111111111, "t_arranque": 22.77777777777778, "t_maniobra": 90, "t_req": 120.13888888888889, "t_sobra": -0.13888888888888573, "v_prev": 14.722222222222221, "v_curr": 11.38888888888889, "a_decel": 2.0, "a_accel": 0.5, "v_max": 14.722222222222221, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 41.0, "delta_t": 120, "memory_size": 4, "memory_frame_idx": [58, 59, 60, 62], "pending_frames": [63, 64, 65], "pending_dists": [0.8063, 0.8035, 0.8], "coherent_local": [0, 1, 2], "support": 3, "avg_dist_vs_old": 0.8032669825118838, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": false}, "basename": "1784834659000_4.jpeg", "local_path": "images/1052671784811920/1784834659000_4.jpeg"}]}, {"case_id": "fp3", "kind": "fp_dificil", "titulo": "Falso positivo confirmado #3 (dificil: varias ventanas candidatas fallidas antes de confirmar)", "gt_label": "MISMA PERSONA (revision manual humana)", "trip_id": "716821775367857", "dataset": "random_04", "alert_frame": 21, "n_total_frames": 88, "frames": [{"frame_idx": 9, "ts_seconds": 1775376875, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.10761872177196596, "dist_mem_breakdown": {"dot": 0.8243745589212095, "norm_a": 0.9237918300809604, "norm_b": 1.0000000300554495, "cos_sim": 0.892381278228034, "dist": 0.10761872177196596}, "prev_frame_dist": 0.2692672298816313, "prev_frame_dist_breakdown": {"dot": 0.7307328132330728, "norm_a": 1.0000000289465623, "norm_b": 1.0000000300554495, "cos_sim": 0.7307327701183687, "dist": 0.2692672298816313}, "p_fisica": 0.5758000536158003, "physics_breakdown": {"t_frenado": 8.61111111111111, "t_arranque": 18.333333333333332, "t_maniobra": 90, "t_req": 116.94444444444444, "t_sobra": 3.055555555555557, "v_prev": 17.22222222222222, "v_curr": 9.166666666666666, "a_decel": 2.0, "a_accel": 0.5, "v_max": 17.22222222222222, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 33.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [4, 5, 6, 7, 8, 9], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775376875000_4.jpeg", "local_path": "images/716821775367857/1775376875000_4.jpeg"}, {"frame_idx": 10, "ts_seconds": 1775376995, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.3021539218485807, "dist_mem_breakdown": {"dot": 0.6411071204640095, "norm_a": 0.9186941167737515, "norm_b": 1.000000053115409, "cos_sim": 0.6978460781514193, "dist": 0.3021539218485807}, "prev_frame_dist": 0.35062981809729576, "prev_frame_dist_breakdown": {"dot": 0.6493702359113807, "norm_a": 1.0000000300554495, "norm_b": 1.000000053115409, "cos_sim": 0.6493701819027042, "dist": 0.35062981809729576}, "p_fisica": 0.8670357598021706, "physics_breakdown": {"t_frenado": 4.583333333333333, "t_arranque": 6.666666666666666, "t_maniobra": 90, "t_req": 101.25, "t_sobra": 18.75, "v_prev": 9.166666666666666, "v_curr": 3.333333333333333, "a_decel": 2.0, "a_accel": 0.5, "v_max": 9.166666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 12.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775376995000_4.jpeg", "local_path": "images/716821775367857/1775376995000_4.jpeg"}, {"frame_idx": 11, "ts_seconds": 1775393388, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.81179629022811, "dist_mem_breakdown": {"dot": 0.1676491857036382, "norm_a": 0.8907858037566331, "norm_b": 0.9999999571993468, "cos_sim": 0.18820370977189005, "dist": 0.81179629022811}, "prev_frame_dist": 0.9265548920429082, "prev_frame_dist_breakdown": {"dot": 0.07344510871466003, "norm_a": 1.000000053115409, "norm_b": 0.9999999571993468, "cos_sim": 0.07344510795709185, "dist": 0.9265548920429082}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 1.6666666666666665, "t_arranque": 25.555555555555554, "t_maniobra": 90, "t_req": 117.22222222222223, "t_sobra": 16275.777777777777, "v_prev": 3.333333333333333, "v_curr": 12.777777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 12.777777777777777, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 46.0, "delta_t": 16393, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [11], "pending_dists": [0.8118], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.81179629022811, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775393388000_4.jpeg", "local_path": "images/716821775367857/1775393388000_4.jpeg"}, {"frame_idx": 12, "ts_seconds": 1775393508, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8378729069884536, "dist_mem_breakdown": {"dot": 0.1444205195947841, "norm_a": 0.8907858037566331, "norm_b": 1.0000000466399626, "cos_sim": 0.16212709301154643, "dist": 0.8378729069884536}, "prev_frame_dist": 0.32598701893849025, "prev_frame_dist_breakdown": {"dot": 0.6740129836492528, "norm_a": 0.9999999571993468, "norm_b": 1.0000000466399626, "cos_sim": 0.6740129810615098, "dist": 0.32598701893849025}, "p_fisica": 0.6669548851735586, "physics_breakdown": {"t_frenado": 6.388888888888888, "t_arranque": 16.666666666666668, "t_maniobra": 90, "t_req": 113.05555555555556, "t_sobra": 6.944444444444443, "v_prev": 12.777777777777777, "v_curr": 8.333333333333334, "a_decel": 2.0, "a_accel": 0.5, "v_max": 12.777777777777777, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 30.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [11, 12], "pending_dists": [0.8118, 0.8379], "coherent_local": [0, 1], "support": 2, "avg_dist_vs_old": 0.8248345986082818, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775393508000_4.jpeg", "local_path": "images/716821775367857/1775393508000_4.jpeg"}, {"frame_idx": 13, "ts_seconds": 1775393628, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8322912694108078, "dist_mem_breakdown": {"dot": 0.1493925630853319, "norm_a": 0.8907858037566331, "norm_b": 1.000000044918126, "cos_sim": 0.1677087305891922, "dist": 0.8322912694108078}, "prev_frame_dist": 0.42105128740201736, "prev_frame_dist_breakdown": {"dot": 0.5789487656054214, "norm_a": 1.0000000466399626, "norm_b": 1.000000044918126, "cos_sim": 0.5789487125979826, "dist": 0.42105128740201736}, "p_fisica": 0.4241999463841996, "physics_breakdown": {"t_frenado": 4.166666666666667, "t_arranque": 28.88888888888889, "t_maniobra": 90, "t_req": 123.05555555555556, "t_sobra": -3.055555555555557, "v_prev": 8.333333333333334, "v_curr": 14.444444444444445, "a_decel": 2.0, "a_accel": 0.5, "v_max": 14.444444444444445, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 52.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [11, 12, 13], "pending_dists": [0.8118, 0.8379, 0.8323], "coherent_local": [0, 1, 2], "support": 3, "avg_dist_vs_old": 0.8273201555424571, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": false}, "basename": "1775393628000_4.jpeg", "local_path": "images/716821775367857/1775393628000_4.jpeg"}, {"frame_idx": 14, "ts_seconds": 1775394108, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8707347670524708, "dist_mem_breakdown": {"dot": 0.11514763678076823, "norm_a": 0.8907858037566331, "norm_b": 1.0000000204243453, "cos_sim": 0.12926523294752917, "dist": 0.8707347670524708}, "prev_frame_dist": 0.3407755121189926, "prev_frame_dist_breakdown": {"dot": 0.6592245309563652, "norm_a": 1.000000044918126, "norm_b": 1.0000000204243453, "cos_sim": 0.6592244878810074, "dist": 0.3407755121189926}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 7.222222222222222, "t_arranque": 14.444444444444445, "t_maniobra": 90, "t_req": 111.66666666666667, "t_sobra": 368.3333333333333, "v_prev": 14.444444444444445, "v_curr": 7.222222222222222, "a_decel": 2.0, "a_accel": 0.5, "v_max": 14.444444444444445, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 26.0, "delta_t": 480, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [11, 12, 13, 14], "pending_dists": [0.8118, 0.8379, 0.8323, 0.8707], "coherent_local": [0, 1, 2], "support": 3, "avg_dist_vs_old": 0.8273201555424571, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775394108000_4.jpeg", "local_path": "images/716821775367857/1775394108000_4.jpeg"}, {"frame_idx": 15, "ts_seconds": 1775394228, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9177391642322034, "dist_mem_breakdown": {"dot": 0.07327679089909989, "norm_a": 0.8907858037566331, "norm_b": 1.000000084501398, "cos_sim": 0.08226083576779665, "dist": 0.9177391642322034}, "prev_frame_dist": 0.4075145956625522, "prev_frame_dist_breakdown": {"dot": 0.5924854665044204, "norm_a": 1.0000000204243453, "norm_b": 1.000000084501398, "cos_sim": 0.5924854043374478, "dist": 0.4075145956625522}, "p_fisica": 0.5893093760914265, "physics_breakdown": {"t_frenado": 3.611111111111111, "t_arranque": 22.77777777777778, "t_maniobra": 90, "t_req": 116.38888888888889, "t_sobra": 3.6111111111111143, "v_prev": 7.222222222222222, "v_curr": 11.38888888888889, "a_decel": 2.0, "a_accel": 0.5, "v_max": 11.38888888888889, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 41.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [12, 13, 14, 15], "pending_dists": [0.8379, 0.8323, 0.8707, 0.9177], "coherent_local": [1, 2], "support": 2, "avg_dist_vs_old": 0.8515130182316393, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": false}, "basename": "1775394228000_4.jpeg", "local_path": "images/716821775367857/1775394228000_4.jpeg"}, {"frame_idx": 16, "ts_seconds": 1775394348, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8283748511439056, "dist_mem_breakdown": {"dot": 0.15288125455401133, "norm_a": 0.8907858037566331, "norm_b": 1.0000000548490005, "cos_sim": 0.17162514885609434, "dist": 0.8283748511439056}, "prev_frame_dist": 0.4552711405360321, "prev_frame_dist_breakdown": {"dot": 0.544728935372154, "norm_a": 1.000000084501398, "norm_b": 1.0000000548490005, "cos_sim": 0.5447288594639679, "dist": 0.4552711405360321}, "p_fisica": 0.682197457545419, "physics_breakdown": {"t_frenado": 5.694444444444445, "t_arranque": 16.666666666666668, "t_maniobra": 90, "t_req": 112.36111111111111, "t_sobra": 7.638888888888886, "v_prev": 11.38888888888889, "v_curr": 8.333333333333334, "a_decel": 2.0, "a_accel": 0.5, "v_max": 11.38888888888889, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 30.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [13, 14, 15, 16], "pending_dists": [0.8323, 0.8707, 0.9177, 0.8284], "coherent_local": [1, 0, 3], "support": 3, "avg_dist_vs_old": 0.8438002958690615, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775394348000_4.jpeg", "local_path": "images/716821775367857/1775394348000_4.jpeg"}, {"frame_idx": 17, "ts_seconds": 1775394468, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8776267625610868, "dist_mem_breakdown": {"dot": 0.10900833905660873, "norm_a": 0.8907858037566331, "norm_b": 0.9999999668491901, "cos_sim": 0.12237323743891317, "dist": 0.8776267625610868}, "prev_frame_dist": 0.31184460990873886, "prev_frame_dist_breakdown": {"dot": 0.6881554050229868, "norm_a": 1.0000000548490005, "norm_b": 0.9999999668491901, "cos_sim": 0.6881553900912611, "dist": 0.31184460990873886}, "p_fisica": 0.5069439979482605, "physics_breakdown": {"t_frenado": 4.166666666666667, "t_arranque": 25.555555555555554, "t_maniobra": 90, "t_req": 119.72222222222223, "t_sobra": 0.27777777777777146, "v_prev": 8.333333333333334, "v_curr": 12.777777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 12.777777777777777, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 46.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [14, 15, 16, 17], "pending_dists": [0.8707, 0.9177, 0.8284, 0.8776], "coherent_local": [0, 2, 3], "support": 3, "avg_dist_vs_old": 0.8589121269191544, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": true, "phys_ok": false}, "basename": "1775394468000_4.jpeg", "local_path": "images/716821775367857/1775394468000_4.jpeg"}, {"frame_idx": 18, "ts_seconds": 1775394708, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.890407176631867, "dist_mem_breakdown": {"dot": 0.09762373557632328, "norm_a": 0.8907858037566331, "norm_b": 1.0000000443169108, "cos_sim": 0.10959282336813303, "dist": 0.890407176631867}, "prev_frame_dist": 0.42574965540813736, "prev_frame_dist_breakdown": {"dot": 0.574250351003999, "norm_a": 0.9999999668491901, "norm_b": 1.0000000443169108, "cos_sim": 0.5742503445918626, "dist": 0.42574965540813736}, "p_fisica": 0.9999954734933825, "physics_breakdown": {"t_frenado": 6.388888888888888, "t_arranque": 20.555555555555554, "t_maniobra": 90, "t_req": 116.94444444444444, "t_sobra": 123.05555555555556, "v_prev": 12.777777777777777, "v_curr": 10.277777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 12.777777777777777, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 37.0, "delta_t": 240, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [15, 16, 17, 18], "pending_dists": [0.9177, 0.8284, 0.8776, 0.8904], "coherent_local": [0, 3], "support": 2, "avg_dist_vs_old": 0.9040731704320352, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1775394708000_4.jpeg", "local_path": "images/716821775367857/1775394708000_4.jpeg"}, {"frame_idx": 19, "ts_seconds": 1775394828, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8423344231348185, "dist_mem_breakdown": {"dot": 0.14044626378962044, "norm_a": 0.8907858037566331, "norm_b": 1.000000043981354, "cos_sim": 0.15766557686518146, "dist": 0.8423344231348185}, "prev_frame_dist": 0.7150139657448045, "prev_frame_dist_breakdown": {"dot": 0.2849860594189684, "norm_a": 1.0000000443169108, "norm_b": 1.000000043981354, "cos_sim": 0.28498603425519553, "dist": 0.7150139657448045}, "p_fisica": 0.7171879820771767, "physics_breakdown": {"t_frenado": 5.138888888888888, "t_arranque": 15.555555555555555, "t_maniobra": 90, "t_req": 110.69444444444444, "t_sobra": 9.305555555555557, "v_prev": 10.277777777777777, "v_curr": 7.777777777777778, "a_decel": 2.0, "a_accel": 0.5, "v_max": 10.277777777777777, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 28.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [16, 17, 18, 19], "pending_dists": [0.8284, 0.8776, 0.8904, 0.8423], "coherent_local": [0, 1], "support": 2, "avg_dist_vs_old": 0.8530008068524962, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1775394828000_4.jpeg", "local_path": "images/716821775367857/1775394828000_4.jpeg"}, {"frame_idx": 20, "ts_seconds": 1775395428, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.9100352375902004, "dist_mem_breakdown": {"dot": 0.08013933395277437, "norm_a": 0.8907858037566331, "norm_b": 1.0000000094808197, "cos_sim": 0.08996476240979952, "dist": 0.9100352375902004}, "prev_frame_dist": 0.6652492364827416, "prev_frame_dist_breakdown": {"dot": 0.33475078141376197, "norm_a": 1.000000043981354, "norm_b": 1.0000000094808197, "cos_sim": 0.3347507635172584, "dist": 0.6652492364827416}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 3.888888888888889, "t_arranque": 30.0, "t_maniobra": 90, "t_req": 123.88888888888889, "t_sobra": 476.1111111111111, "v_prev": 7.777777777777778, "v_curr": 15.0, "a_decel": 2.0, "a_accel": 0.5, "v_max": 15.0, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 54.0, "delta_t": 600, "memory_size": 6, "memory_frame_idx": [5, 6, 7, 8, 9, 10], "pending_frames": [17, 18, 19, 20], "pending_dists": [0.8776, 0.8904, 0.8423, 0.91], "coherent_local": [1, 3], "support": 2, "avg_dist_vs_old": 0.9002212071110337, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": true, "phys_ok": true}, "basename": "1775395428000_4.jpeg", "local_path": "images/716821775367857/1775395428000_4.jpeg"}, {"frame_idx": 21, "ts_seconds": 1775397108, "decision": "CAMBIO_CONFIRMADO", "dist_mem": 0.8881338357913474, "dist_mem_breakdown": {"dot": 0.09964879290908601, "norm_a": 0.8907858037566331, "norm_b": 1.0000000191804628, "cos_sim": 0.11186616420865257, "dist": 0.8881338357913474}, "prev_frame_dist": 0.3396625494802046, "prev_frame_dist_breakdown": {"dot": 0.6603374694459138, "norm_a": 1.0000000094808197, "norm_b": 1.0000000191804628, "cos_sim": 0.6603374505197954, "dist": 0.3396625494802046}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 7.5, "t_arranque": 30.0, "t_maniobra": 90, "t_req": 127.5, "t_sobra": 1552.5, "v_prev": 15.0, "v_curr": 15.0, "a_decel": 2.0, "a_accel": 0.5, "v_max": 15.0, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 54.0, "delta_t": 1680, "memory_size": 3, "memory_frame_idx": [20, 18, 21], "pending_frames": [18, 19, 20, 21], "pending_dists": [0.8904, 0.8423, 0.91, 0.8881], "coherent_local": [2, 0, 3], "support": 3, "avg_dist_vs_old": 0.8961920833378049, "candidate_frames": [18, 19, 20, 21], "coherent_frames": [20, 18, 21], "confirm_checks": {"support_ok": true, "avg_dist_ok": true, "phys_ok": true}, "basename": "1775397108000_4.jpeg", "local_path": "images/716821775367857/1775397108000_4.jpeg"}, {"frame_idx": 22, "ts_seconds": 1775397348, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.27670826000435156, "dist_mem_breakdown": {"dot": 0.6329366765189108, "norm_a": 0.875077960050093, "norm_b": 1.0000000255356303, "cos_sim": 0.7232917399956484, "dist": 0.27670826000435156}, "prev_frame_dist": 0.3911161991894577, "prev_frame_dist_breakdown": {"dot": 0.6088838280374472, "norm_a": 1.0000000191804628, "norm_b": 1.0000000255356303, "cos_sim": 0.6088838008105423, "dist": 0.3911161991894577}, "p_fisica": 0.9999933218753096, "physics_breakdown": {"t_frenado": 7.5, "t_arranque": 23.333333333333332, "t_maniobra": 90, "t_req": 120.83333333333333, "t_sobra": 119.16666666666667, "v_prev": 15.0, "v_curr": 11.666666666666666, "a_decel": 2.0, "a_accel": 0.5, "v_max": 15.0, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 42.0, "delta_t": 240, "memory_size": 4, "memory_frame_idx": [20, 18, 21, 22], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775397348000_4.jpeg", "local_path": "images/716821775367857/1775397348000_4.jpeg"}, {"frame_idx": 23, "ts_seconds": 1775397468, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.2357168267812909, "dist_mem_breakdown": {"dot": 0.6532686322973932, "norm_a": 0.854746783983187, "norm_b": 1.0000000733790628, "cos_sim": 0.7642831732187091, "dist": 0.2357168267812909}, "prev_frame_dist": 0.272664711770906, "prev_frame_dist_breakdown": {"dot": 0.7273353601732421, "norm_a": 1.0000000255356303, "norm_b": 1.0000000733790628, "cos_sim": 0.727335288229094, "dist": 0.272664711770906}, "p_fisica": 0.5208212853727432, "physics_breakdown": {"t_frenado": 5.833333333333333, "t_arranque": 23.333333333333332, "t_maniobra": 90, "t_req": 119.16666666666666, "t_sobra": 0.8333333333333428, "v_prev": 11.666666666666666, "v_curr": 11.666666666666666, "a_decel": 2.0, "a_accel": 0.5, "v_max": 11.666666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 42.0, "delta_t": 120, "memory_size": 5, "memory_frame_idx": [20, 18, 21, 22, 23], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775397468000_4.jpeg", "local_path": "images/716821775367857/1775397468000_4.jpeg"}, {"frame_idx": 24, "ts_seconds": 1775397588, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.2760839266049204, "dist_mem_breakdown": {"dot": 0.6128217716832787, "norm_a": 0.8465369983836711, "norm_b": 1.0000000519395977, "cos_sim": 0.7239160733950796, "dist": 0.2760839266049204}, "prev_frame_dist": 0.30415963038809013, "prev_frame_dist_breakdown": {"dot": 0.6958404568136956, "norm_a": 1.0000000733790628, "norm_b": 1.0000000519395977, "cos_sim": 0.6958403696119099, "dist": 0.30415963038809013}, "p_fisica": 0.46533348664659613, "physics_breakdown": {"t_frenado": 5.833333333333333, "t_arranque": 25.555555555555554, "t_maniobra": 90, "t_req": 121.38888888888889, "t_sobra": -1.3888888888888857, "v_prev": 11.666666666666666, "v_curr": 12.777777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 12.777777777777777, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 46.0, "delta_t": 120, "memory_size": 6, "memory_frame_idx": [20, 18, 21, 22, 23, 24], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775397588000_4.jpeg", "local_path": "images/716821775367857/1775397588000_4.jpeg"}]}, {"case_id": "vuelve", "kind": "vuelve", "titulo": "Anomalia con ventana completa que NO confirma: vuelve el conductor anterior", "gt_label": "identity_id crudo: no cambia en este tramo (el algoritmo abre candidato pero lo descarta correctamente)", "trip_id": "1808801775184559", "dataset": "random_04", "alert_frame": null, "n_total_frames": 122, "frames": [{"frame_idx": 3, "ts_seconds": 1775185341, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8551840300745892, "dist_mem_breakdown": {"dot": 0.14481598262873532, "norm_a": 1.0000000703873706, "norm_b": 1.000000017333095, "cos_sim": 0.14481596992541085, "dist": 0.8551840300745892}, "prev_frame_dist": 0.1361954649052185, "prev_frame_dist_breakdown": {"dot": 0.8638045615451604, "norm_a": 1.0000000132876967, "norm_b": 1.000000017333095, "cos_sim": 0.8638045350947815, "dist": 0.1361954649052185}, "p_fisica": 0.899749509642487, "physics_breakdown": {"t_frenado": 3.611111111111111, "t_arranque": 4.444444444444445, "t_maniobra": 90, "t_req": 98.05555555555556, "t_sobra": 21.944444444444443, "v_prev": 7.222222222222222, "v_curr": 2.2222222222222223, "a_decel": 2.0, "a_accel": 0.5, "v_max": 7.222222222222222, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 8.0, "delta_t": 120, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": [1, 2, 3], "pending_dists": [0.7343, 0.8151, 0.8552], "coherent_local": [1, 2], "support": 2, "avg_dist_vs_old": 0.8351606686114856, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775185341000_4.jpeg", "local_path": "images/1808801775184559/1775185341000_4.jpeg"}, {"frame_idx": 4, "ts_seconds": 1775185581, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8659708789752476, "dist_mem_breakdown": {"dot": 0.1340291284616779, "norm_a": 1.0000000703873706, "norm_b": 0.9999999851000162, "cos_sim": 0.13402912102475234, "dist": 0.8659708789752476}, "prev_frame_dist": 0.23723445444189684, "prev_frame_dist_breakdown": {"dot": 0.7627655474139963, "norm_a": 1.000000017333095, "norm_b": 0.9999999851000162, "cos_sim": 0.7627655455581032, "dist": 0.23723445444189684}, "p_fisica": 0.9999987031299525, "physics_breakdown": {"t_frenado": 1.1111111111111112, "t_arranque": 13.333333333333332, "t_maniobra": 90, "t_req": 104.44444444444444, "t_sobra": 135.55555555555554, "v_prev": 2.2222222222222223, "v_curr": 6.666666666666666, "a_decel": 2.0, "a_accel": 0.5, "v_max": 6.666666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 24.0, "delta_t": 240, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": [1, 2, 3, 4], "pending_dists": [0.7343, 0.8151, 0.8552, 0.866], "coherent_local": [1, 2, 3], "support": 3, "avg_dist_vs_old": 0.8454307387327397, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775185581000_4.jpeg", "local_path": "images/1808801775184559/1775185581000_4.jpeg"}, {"frame_idx": 5, "ts_seconds": 1775185701, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8311226595414185, "dist_mem_breakdown": {"dot": 0.16887736949984056, "norm_a": 1.0000000703873706, "norm_b": 1.0000001015792046, "cos_sim": 0.1688773404585815, "dist": 0.8311226595414185}, "prev_frame_dist": 0.35602864647918264, "prev_frame_dist_breakdown": {"dot": 0.6439714093397516, "norm_a": 0.9999999851000162, "norm_b": 1.0000001015792046, "cos_sim": 0.6439713535208174, "dist": 0.35602864647918264}, "p_fisica": 0.8865077741957713, "physics_breakdown": {"t_frenado": 3.333333333333333, "t_arranque": 6.111111111111111, "t_maniobra": 90, "t_req": 99.44444444444444, "t_sobra": 20.555555555555557, "v_prev": 6.666666666666666, "v_curr": 3.0555555555555554, "a_decel": 2.0, "a_accel": 0.5, "v_max": 6.666666666666666, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 11.0, "delta_t": 120, "memory_size": 1, "memory_frame_idx": [0], "pending_frames": [2, 3, 4, 5], "pending_dists": [0.8151, 0.8552, 0.866, 0.8311], "coherent_local": [0, 1, 2, 3], "support": 4, "avg_dist_vs_old": 0.8418537189349093, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775185701000_4.jpeg", "local_path": "images/1808801775184559/1775185701000_4.jpeg"}, {"frame_idx": 6, "ts_seconds": 1775191448, "decision": "CAMBIO_CONFIRMADO", "dist_mem": 0.7733237885898526, "dist_mem_breakdown": {"dot": 0.2266762270877024, "norm_a": 1.0000000703873706, "norm_b": 0.999999998775401, "cos_sim": 0.2266762114101474, "dist": 0.7733237885898526}, "prev_frame_dist": 0.2754122421883568, "prev_frame_dist_breakdown": {"dot": 0.7245878305273618, "norm_a": 1.0000001015792046, "norm_b": 0.999999998775401, "cos_sim": 0.7245877578116432, "dist": 0.2754122421883568}, "p_fisica": 1.0, "physics_breakdown": {"t_frenado": 1.5277777777777777, "t_arranque": 31.11111111111111, "t_maniobra": 90, "t_req": 122.63888888888889, "t_sobra": 5624.361111111111, "v_prev": 3.0555555555555554, "v_curr": 15.555555555555555, "a_decel": 2.0, "a_accel": 0.5, "v_max": 15.555555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 56.0, "delta_t": 5747, "memory_size": 3, "memory_frame_idx": [3, 4, 5], "pending_frames": [3, 4, 5, 6], "pending_dists": [0.8552, 0.866, 0.8311, 0.7733], "coherent_local": [0, 1, 2], "support": 3, "avg_dist_vs_old": 0.8507591895304184, "candidate_frames": [3, 4, 5, 6], "coherent_frames": [3, 4, 5], "confirm_checks": {"support_ok": true, "avg_dist_ok": true, "phys_ok": true}, "basename": "1775191448000_4.jpeg", "local_path": "images/1808801775184559/1775191448000_4.jpeg"}, {"frame_idx": 7, "ts_seconds": 1775191688, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8156605808636219, "dist_mem_breakdown": {"dot": 0.16664737034733712, "norm_a": 0.9040245976975961, "norm_b": 1.0000000067373664, "cos_sim": 0.18433941913637805, "dist": 0.8156605808636219}, "prev_frame_dist": 0.6881473509220957, "prev_frame_dist_breakdown": {"dot": 0.31185265079707547, "norm_a": 0.999999998775401, "norm_b": 1.0000000067373664, "cos_sim": 0.3118526490779044, "dist": 0.6881473509220957}, "p_fisica": 0.9999988395095345, "physics_breakdown": {"t_frenado": 7.777777777777778, "t_arranque": 5.555555555555555, "t_maniobra": 90, "t_req": 103.33333333333333, "t_sobra": 136.66666666666669, "v_prev": 15.555555555555555, "v_curr": 2.7777777777777777, "a_decel": 2.0, "a_accel": 0.5, "v_max": 15.555555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 10.0, "delta_t": 240, "memory_size": 3, "memory_frame_idx": [3, 4, 5], "pending_frames": [7], "pending_dists": [0.8157], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.8156605808636219, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775191688000_4.jpeg", "local_path": "images/1808801775184559/1775191688000_4.jpeg"}, {"frame_idx": 8, "ts_seconds": 1775191808, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.6986866967434863, "dist_mem_breakdown": {"dot": 0.27239465648069383, "norm_a": 0.9040245976975961, "norm_b": 1.0000000687358988, "cos_sim": 0.30131330325651373, "dist": 0.6986866967434863}, "prev_frame_dist": 0.3401975342824328, "prev_frame_dist_breakdown": {"dot": 0.6598025155150139, "norm_a": 1.0000000067373664, "norm_b": 1.0000000687358988, "cos_sim": 0.6598024657175672, "dist": 0.3401975342824328}, "p_fisica": 0.7772998611746911, "physics_breakdown": {"t_frenado": 1.3888888888888888, "t_arranque": 16.11111111111111, "t_maniobra": 90, "t_req": 107.5, "t_sobra": 12.5, "v_prev": 2.7777777777777777, "v_curr": 8.055555555555555, "a_decel": 2.0, "a_accel": 0.5, "v_max": 8.055555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 29.0, "delta_t": 120, "memory_size": 3, "memory_frame_idx": [3, 4, 5], "pending_frames": [7, 8], "pending_dists": [0.8157, 0.6987], "coherent_local": [0, 1], "support": 2, "avg_dist_vs_old": 0.7571736388035541, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775191808000_4.jpeg", "local_path": "images/1808801775184559/1775191808000_4.jpeg"}, {"frame_idx": 9, "ts_seconds": 1775192048, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.7153789675470881, "dist_mem_breakdown": {"dot": 0.257304421090896, "norm_a": 0.9040245976975961, "norm_b": 1.0000000261611441, "cos_sim": 0.2846210324529119, "dist": 0.7153789675470881}, "prev_frame_dist": 0.13113788863342812, "prev_frame_dist_breakdown": {"dot": 0.8688621938190184, "norm_a": 1.0000000687358988, "norm_b": 1.0000000261611441, "cos_sim": 0.8688621113665719, "dist": 0.13113788863342812}, "p_fisica": 0.9999986849922275, "physics_breakdown": {"t_frenado": 4.027777777777778, "t_arranque": 10.555555555555555, "t_maniobra": 90, "t_req": 104.58333333333333, "t_sobra": 135.41666666666669, "v_prev": 8.055555555555555, "v_curr": 5.277777777777778, "a_decel": 2.0, "a_accel": 0.5, "v_max": 8.055555555555555, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 19.0, "delta_t": 240, "memory_size": 3, "memory_frame_idx": [3, 4, 5], "pending_frames": [7, 8, 9], "pending_dists": [0.8157, 0.6987, 0.7154], "coherent_local": [0, 1, 2], "support": 3, "avg_dist_vs_old": 0.7432420817180655, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775192048000_4.jpeg", "local_path": "images/1808801775184559/1775192048000_4.jpeg"}, {"frame_idx": 10, "ts_seconds": 1775192168, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.8432168612675288, "dist_mem_breakdown": {"dot": 0.14173581100033722, "norm_a": 0.9040245976975961, "norm_b": 0.9999999794120391, "cos_sim": 0.15678313873247113, "dist": 0.8432168612675288}, "prev_frame_dist": 0.4926800388785729, "prev_frame_dist_breakdown": {"dot": 0.507319963948814, "norm_a": 1.0000000261611441, "norm_b": 0.9999999794120391, "cos_sim": 0.5073199611214271, "dist": 0.4926800388785729}, "p_fisica": 0.882247627167323, "physics_breakdown": {"t_frenado": 2.638888888888889, "t_arranque": 7.222222222222222, "t_maniobra": 90, "t_req": 99.86111111111111, "t_sobra": 20.138888888888886, "v_prev": 5.277777777777778, "v_curr": 3.611111111111111, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.277777777777778, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 13.0, "delta_t": 120, "memory_size": 3, "memory_frame_idx": [3, 4, 5], "pending_frames": [7, 8, 9, 10], "pending_dists": [0.8157, 0.6987, 0.7154, 0.8432], "coherent_local": [0, 1, 2, 3], "support": 4, "avg_dist_vs_old": 0.7682357766054313, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": true, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775192168000_4.jpeg", "local_path": "images/1808801775184559/1775192168000_4.jpeg"}, {"frame_idx": 11, "ts_seconds": 1775192288, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.103394440015528, "dist_mem_breakdown": {"dot": 0.8105534887502122, "norm_a": 0.9040245976975961, "norm_b": 1.0000000099830821, "cos_sim": 0.896605559984472, "dist": 0.103394440015528}, "prev_frame_dist": 0.8662662970032802, "prev_frame_dist_breakdown": {"dot": 0.13373370157849016, "norm_a": 0.9999999794120391, "norm_b": 1.0000000099830821, "cos_sim": 0.13373370299671988, "dist": 0.8662662970032802}, "p_fisica": 0.9983910376545023, "physics_breakdown": {"t_frenado": 1.8055555555555556, "t_arranque": 8.88888888888889, "t_maniobra": 45, "t_req": 55.69444444444444, "t_sobra": 64.30555555555556, "v_prev": 3.611111111111111, "v_curr": 4.444444444444445, "a_decel": 2.0, "a_accel": 0.5, "v_max": 4.444444444444445, "t_maniobra_reason": "v_max < 5.0 m/s (vehiculo lento)"}, "speed": 16.0, "delta_t": 120, "memory_size": 4, "memory_frame_idx": [3, 4, 5, 11], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775192288000_4.jpeg", "local_path": "images/1808801775184559/1775192288000_4.jpeg"}, {"frame_idx": 12, "ts_seconds": 1775192408, "decision": "MISMO_CONDUCTOR", "dist_mem": 0.18811943326916292, "dist_mem_breakdown": {"dot": 0.7379483963677125, "norm_a": 0.9089370581773024, "norm_b": 1.0000000846293182, "cos_sim": 0.8118805667308371, "dist": 0.18811943326916292}, "prev_frame_dist": 0.2573463511146751, "prev_frame_dist_breakdown": {"dot": 0.7426537191495699, "norm_a": 1.0000000099830821, "norm_b": 1.0000000846293182, "cos_sim": 0.7426536488853249, "dist": 0.2573463511146751}, "p_fisica": 0.8335655924457411, "physics_breakdown": {"t_frenado": 2.2222222222222223, "t_arranque": 11.666666666666666, "t_maniobra": 90, "t_req": 103.8888888888889, "t_sobra": 16.1111111111111, "v_prev": 4.444444444444445, "v_curr": 5.833333333333333, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.833333333333333, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 21.0, "delta_t": 120, "memory_size": 5, "memory_frame_idx": [3, 4, 5, 11, 12], "pending_frames": null, "pending_dists": null, "coherent_local": null, "support": null, "avg_dist_vs_old": null, "candidate_frames": null, "coherent_frames": null, "confirm_checks": null, "basename": "1775192408000_4.jpeg", "local_path": "images/1808801775184559/1775192408000_4.jpeg"}, {"frame_idx": 13, "ts_seconds": 1775192528, "decision": "POSIBLE_CAMBIO", "dist_mem": 0.7237098821367365, "dist_mem_breakdown": {"dot": 0.2478755327446971, "norm_a": 0.8971566764361393, "norm_b": 1.0000000357854713, "cos_sim": 0.2762901178632635, "dist": 0.7237098821367365}, "prev_frame_dist": 0.717467988713741, "prev_frame_dist_breakdown": {"dot": 0.28253204530729253, "norm_a": 1.0000000846293182, "norm_b": 1.0000000357854713, "cos_sim": 0.282532011286259, "dist": 0.717467988713741}, "p_fisica": 0.8237068789037679, "physics_breakdown": {"t_frenado": 2.9166666666666665, "t_arranque": 11.666666666666666, "t_maniobra": 90, "t_req": 104.58333333333334, "t_sobra": 15.416666666666657, "v_prev": 5.833333333333333, "v_curr": 5.833333333333333, "a_decel": 2.0, "a_accel": 0.5, "v_max": 5.833333333333333, "t_maniobra_reason": "v_max >= 5.0 m/s (velocidad normal)"}, "speed": 21.0, "delta_t": 120, "memory_size": 5, "memory_frame_idx": [3, 4, 5, 11, 12], "pending_frames": [13], "pending_dists": [0.7237], "coherent_local": [0], "support": 1, "avg_dist_vs_old": 0.7237098821367365, "candidate_frames": null, "coherent_frames": null, "confirm_checks": {"support_ok": false, "avg_dist_ok": false, "phys_ok": true}, "basename": "1775192528000_4.jpeg", "local_path": "images/1808801775184559/1775192528000_4.jpeg"}]}];
+// Caso sintetico de comparacion directa: no trae frames propios, apunta a
+// dos casos ya existentes (mismos datos reales, sin duplicar). Se agrega
+// como un caso mas seleccionable en las pestañas, no como seccion fija.
+CASES.push({ case_id: "cmp", kind: "comparacion", titulo: "Comparacion directa: caso correcto vs falso positivo",
+  leftId: "tp2", rightId: "fp1" });
+
+const TH = { dist_mem: 0.50, window: 4, support: 3, coherence: 0.35, avg_dist: 0.85, p_fisica: 0.60 };
+let currentCaseIdx = 0;
+let currentFrameLocalIdx = null;
+let cmpLeftIdx = null;
+let cmpRightIdx = null;
+
+// ---------------------------------------------------------------
+// Flow diagram
+// ---------------------------------------------------------------
+function renderFlow() {
+  const steps = ["Frame", "Embedding", "Memoria (centroide)", "Distancia coseno", "Candidato (ventana)", "Coherencia + Persistencia + Fisica", "Decision"];
+  const el = document.getElementById("flow");
+  let html = "";
+  let delay = 0;
+  steps.forEach((s, i) => {
+    html += `<div class="flow-step" style="animation-delay:${delay}s"><b>${i+1}</b>${s}</div>`;
+    delay += 0.12;
+    if (i < steps.length - 1) {
+      html += `<div class="flow-arrow" style="animation-delay:${delay}s">&rarr;</div>`;
+      delay += 0.05;
+    }
+  });
+  el.innerHTML = html;
+}
+
+// ---------------------------------------------------------------
+// Tabs
+// ---------------------------------------------------------------
+function renderTabs() {
+  const groups = { ok: [], fp: [], special: [], cmp: [] };
+  CASES.forEach((c, i) => {
+    if (c.kind === "correcto") groups.ok.push(i);
+    else if (c.kind === "fp" || c.kind === "fp_dificil") groups.fp.push(i);
+    else if (c.kind === "comparacion") groups.cmp.push(i);
+    else groups.special.push(i);
+  });
+  const mk = (idxs) => idxs.map(i => {
+    const c = CASES[i];
+    return `<button class="tab-btn kind-${c.kind}" data-idx="${i}" onclick="selectCase(${i})">${c.titulo}</button>`;
+  }).join("");
+  document.getElementById("tabs-ok").innerHTML = mk(groups.ok);
+  document.getElementById("tabs-fp").innerHTML = mk(groups.fp);
+  document.getElementById("tabs-special").innerHTML = mk(groups.special);
+  document.getElementById("tabs-cmp").innerHTML = mk(groups.cmp);
+}
+
+function markActiveTab() {
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.classList.toggle("active", parseInt(b.dataset.idx) === currentCaseIdx);
+  });
+}
+
+// ---------------------------------------------------------------
+// Case view
+// ---------------------------------------------------------------
+function selectCase(i) {
+  currentCaseIdx = i;
+  currentFrameLocalIdx = null;
+  cmpLeftIdx = null;
+  cmpRightIdx = null;
+  markActiveTab();
+  renderCase();
+}
+
+function fmt(v, d) {
+  if (v === null || v === undefined || Number.isNaN(v)) return "N/A";
+  return Number(v).toFixed(d === undefined ? 3 : d);
+}
+
+function findCase(id) { return CASES.find(c => c.case_id === id); }
+
+function frameByIdx(caseObj, idx) {
+  return caseObj.frames.find(f => f.frame_idx === idx);
+}
+
+function defaultFrameIdx(c) {
+  let target = c.alert_frame;
+  let found = target !== null && target !== undefined ? c.frames.findIndex(f => f.frame_idx === target) : -1;
+  if (found === -1) found = Math.floor(c.frames.length / 2);
+  return found;
+}
+
+function renderCase() {
+  const c = CASES[currentCaseIdx];
+  if (c.kind === "comparacion") {
+    renderComparisonCase(c);
+    return;
+  }
+  if (currentFrameLocalIdx === null) currentFrameLocalIdx = defaultFrameIdx(c);
+
+  let gtTagLabel = c.kind === "correcto" ? "RESULTADO HUMANO / GT" : (c.kind.startsWith("fp") ? "RESULTADO HUMANO / GT" : "GT (dato crudo, sin revision manual dedicada)");
+
+  const html = `
+  ${buildCaseHeaderHtml(c, gtTagLabel)}
+  <div class="panel chart-wrap">
+    <h4>Evolucion de las metricas clave a lo largo del tramo (clickeable)</h4>
+    <div id="chart-${c.case_id}"></div>
+  </div>
+  <div id="timeline-wrap"><div id="timeline"></div></div>
+  <div id="detail"></div>`;
+
+  document.getElementById("case-view").innerHTML = html;
+  document.getElementById(`chart-${c.case_id}`).innerHTML = buildMetricsChartHtml(c, currentFrameLocalIdx, "selectFrame");
+  renderTimeline(c);
+  renderDetail(c);
+}
+
+function buildCaseHeaderHtml(c, gtTagLabel) {
+  return `
+  <div class="case-header">
+    <h2>${c.titulo}</h2>
+    <div class="case-meta">Dataset: <b>${c.dataset}</b> &middot; trip_id: <b>${c.trip_id}</b> &middot; ${c.n_total_frames} frames validos en el viaje completo</div>
+    <div class="gt-box">
+      <span class="gt-tag">${gtTagLabel}</span>${c.gt_label}
+      <span class="gt-note">Esta etiqueta es SOLO para contexto humano. El algoritmo nunca ve identity_id ni revision manual: decide unicamente con embeddings, velocidad y tiempo.</span>
+    </div>
+  </div>`;
+}
+
+// ---------------------------------------------------------------
+// Metrics chart: como evolucionan dist_mem / distancia promedio / P_fisica
+// frame a frame, para poder ver de un vistazo por que cambia la decision.
+// ---------------------------------------------------------------
+function buildMetricsChartHtml(c, selectedLocalIdx, clickFn) {
+  const frames = c.frames;
+  const n = frames.length;
+  const colW = 46;
+  const width = Math.max(360, n * colW + 40);
+  const height = 170;
+  const top = 12, bottom = 26, left = 6, right = 6;
+  const plotH = height - top - bottom;
+  const plotW = width - left - right;
+  const stepX = plotW / Math.max(1, n - 1);
+  const yMax = 1.15;
+  const yOf = (v) => top + (1 - Math.min(v, yMax) / yMax) * plotH;
+  const xOf = (i) => left + i * stepX;
+
+  const decColors = {
+    INICIO_VIAJE: "rgba(88,166,255,0.16)", MISMO_CONDUCTOR: "rgba(63,185,80,0.14)",
+    POSIBLE_CAMBIO: "rgba(217,164,65,0.20)", CAMBIO_CONFIRMADO: "rgba(248,81,73,0.28)",
+    INDETERMINADO: "rgba(139,148,165,0.14)",
+  };
+
+  const colW2 = stepX;
+  let bg = frames.map((f, i) => {
+    const x0 = xOf(i) - colW2 / 2;
+    return `<rect class="chart-col-hit" x="${x0}" y="${top}" width="${colW2}" height="${plotH}" fill="${decColors[f.decision] || 'transparent'}" onclick="${clickFn}(${i})"></rect>`;
+  }).join("");
+
+  function lineFor(getter) {
+    const pts = [];
+    frames.forEach((f, i) => {
+      const v = getter(f);
+      if (v === null || v === undefined) return;
+      pts.push(`${xOf(i)},${yOf(v)}`);
+    });
+    return pts;
+  }
+  function pathFromPts(pts, color) {
+    if (pts.length < 2) return "";
+    return `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2"></polyline>`;
+  }
+  function dotsFromPts(pts, color, getter) {
+    return frames.map((f, i) => {
+      const v = getter(f);
+      if (v === null || v === undefined) return "";
+      return `<circle cx="${xOf(i)}" cy="${yOf(v)}" r="3" fill="${color}"></circle>`;
+    }).join("");
+  }
+
+  const distMemPts = lineFor(f => f.dist_mem);
+  const avgDistPts = lineFor(f => f.avg_dist_vs_old);
+  const pFisicaPts = lineFor(f => f.p_fisica);
+
+  const thLine = (v, color) => `<line x1="${left}" y1="${yOf(v)}" x2="${width-right}" y2="${yOf(v)}" stroke="${color}" stroke-width="1" stroke-dasharray="4,3" opacity="0.55"></line>`;
+
+  const cursorX = xOf(selectedLocalIdx);
+  const cursor = `<line x1="${cursorX}" y1="${top}" x2="${cursorX}" y2="${top+plotH}" stroke="#fff" stroke-width="2" opacity="0.85"></line>`;
+
+  const labels = frames.map((f, i) => `<text x="${xOf(i)}" y="${height-8}" font-size="9.5" fill="#8b96a5" text-anchor="middle">${f.frame_idx}</text>`).join("");
+
+  const svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    ${bg}
+    ${thLine(TH.dist_mem, '#58a6ff')}
+    ${thLine(TH.avg_dist, '#d9a441')}
+    ${thLine(TH.p_fisica, '#3fb950')}
+    ${pathFromPts(distMemPts, '#58a6ff')}
+    ${pathFromPts(avgDistPts, '#d9a441')}
+    ${pathFromPts(pFisicaPts, '#3fb950')}
+    ${dotsFromPts(distMemPts, '#58a6ff', f => f.dist_mem)}
+    ${dotsFromPts(avgDistPts, '#d9a441', f => f.avg_dist_vs_old)}
+    ${dotsFromPts(pFisicaPts, '#3fb950', f => f.p_fisica)}
+    ${cursor}
+    ${labels}
+  </svg>`;
+
+  const legend = `<div class="chart-legend">
+    <span><i style="background:#58a6ff"></i> dist_mem (umbral 0.50)</span>
+    <span><i style="background:#d9a441"></i> distancia promedio vs memoria vieja (umbral 0.85)</span>
+    <span><i style="background:#3fb950"></i> P_fisica (umbral 0.60)</span>
+    <span style="color:#fff;">| linea blanca = frame seleccionado. El fondo de cada columna refleja la decision del algoritmo en ese frame.</span>
+  </div>`;
+
+  return svg + legend;
+}
+
+function renderTimeline(c) {
+  const el = document.getElementById("timeline");
+  el.innerHTML = buildTimelineHtml(c, currentFrameLocalIdx, "selectFrame");
+}
+
+function buildTimelineHtml(c, selectedLocalIdx, clickFn) {
+  return c.frames.map((f, li) => {
+    const img = f.local_path ? `<img class="thumb dec-${f.decision}" src="${f.local_path}">` : `<div class="thumb dec-${f.decision}" style="display:flex;align-items:center;justify-content:center;font-size:9px;color:#888;">sin img</div>`;
+    return `<div class="tl-frame ${li === selectedLocalIdx ? 'selected' : ''}" onclick="${clickFn}(${li})">
+      ${img}<div class="idx">#${f.frame_idx}</div></div>`;
+  }).join("");
+}
+
+function selectFrame(li) {
+  currentFrameLocalIdx = li;
+  const c = CASES[currentCaseIdx];
+  document.getElementById(`chart-${c.case_id}`).innerHTML = buildMetricsChartHtml(c, currentFrameLocalIdx, "selectFrame");
+  renderTimeline(c);
+  renderDetail(c);
+}
+
+function memChip(c, idx) {
+  const f = frameByIdx(c, idx);
+  if (f && f.local_path) {
+    return `<div class="mem-chip"><img src="${f.local_path}"><div class="lbl">#${idx}</div></div>`;
+  }
+  return `<div class="mem-chip"><div class="noimg">#${idx}</div><div class="lbl">fuera de rango</div></div>`;
+}
+
+function winSlot(c, idx, dist, isCoherent) {
+  const f = frameByIdx(c, idx);
+  const img = (f && f.local_path) ? `<img src="${f.local_path}">` : `<div class="noimg">#${idx}</div>`;
+  return `<div class="win-slot ${isCoherent ? 'coherent' : ''}">${img}<div class="d">#${idx}<br>d=${fmt(dist,3)}</div></div>`;
+}
+
+function checkRow(label, value, threshold, op) {
+  let ok;
+  if (op === ">=") ok = value >= threshold;
+  else ok = value < threshold;
+  const cls = ok ? "ok" : "bad";
+  const sym = ok ? "&#10003;" : "&#10007;";
+  return `<div class="check-row"><span>${label}</span><span class="${cls}">${sym} ${value === null || value === undefined ? "N/A" : fmt(value,3)} ${op} ${threshold}</span></div>`;
+}
+
+// ---------------------------------------------------------------
+// Panel: como se desliza la ventana candidata (solapamiento entre pasos)
+// ---------------------------------------------------------------
+function buildWindowEvolutionHtml(c, li) {
+  const f = c.frames[li];
+  if (!(f.decision === "POSIBLE_CAMBIO" || f.decision === "CAMBIO_CONFIRMADO")) {
+    return `<div class="panel wide">
+      <h4>Como se desliza la ventana (solapamiento entre pasos)</h4>
+      <div style="color:#888;font-size:12.5px;">No hay racha de candidato activa en este frame (dist_mem &lt; 0.50 o inicio/indeterminado): la ventana esta vacia.</div>
+    </div>`;
+  }
+  // Encontrar el inicio de la racha continua de POSIBLE_CAMBIO/CAMBIO_CONFIRMADO
+  let start = li;
+  while (start > 0 && c.frames[start - 1].decision === "POSIBLE_CAMBIO") start--;
+  const steps = c.frames.slice(start, li + 1).filter(s => s.decision === "POSIBLE_CAMBIO" || s.decision === "CAMBIO_CONFIRMADO");
+
+  const allIdx = new Set();
+  steps.forEach(s => {
+    const arr = s.pending_frames || s.candidate_frames || [];
+    arr.forEach(x => allIdx.add(x));
+  });
+  if (allIdx.size === 0) {
+    return `<div class="panel wide"><h4>Como se desliza la ventana (solapamiento entre pasos)</h4><div style="color:#888;font-size:12.5px;">Sin datos de ventana.</div></div>`;
+  }
+  const minCol = Math.min(...allIdx), maxCol = Math.max(...allIdx);
+  const cols = [];
+  for (let i = minCol; i <= maxCol; i++) cols.push(i);
+
+  const colLabels = cols.map(i => `<div class="wgrid-collabel">${i}</div>`).join("");
+
+  const rows = steps.map(s => {
+    const winArr = s.pending_frames || s.candidate_frames || [];
+    const coherentSet = new Set();
+    if (s.pending_frames) {
+      (s.coherent_local || []).forEach(localI => coherentSet.add(s.pending_frames[localI]));
+    } else if (s.candidate_frames) {
+      (s.coherent_frames || []).forEach(x => coherentSet.add(x));
+    }
+    const cells = cols.map(colIdx => {
+      const inWindow = winArr.includes(colIdx);
+      let cls = "wcell";
+      if (inWindow) cls += coherentSet.has(colIdx) ? " wc-coherent" : " wc-anom";
+      if (colIdx === s.frame_idx) cls += " wc-current";
+      const targetLi = c.frames.findIndex(x => x.frame_idx === s.frame_idx);
+      return `<div class="${cls}" title="frame #${colIdx}" onclick="selectFrame(${targetLi})"></div>`;
+    }).join("");
+    const tag = s.decision === "CAMBIO_CONFIRMADO" ? " &rarr; CONFIRMA" : "";
+    return `<div class="wgrid-row"><div class="wgrid-label">frame #${s.frame_idx}${tag}</div><div class="wgrid-cells">${cells}</div></div>`;
+  }).join("");
+
+  return `<div class="panel wide">
+    <h4>Como se desliza la ventana (solapamiento entre pasos)</h4>
+    <div class="wgrid">
+      <div class="wgrid-row"><div class="wgrid-label">frame # &rarr; columna = idx</div><div class="wgrid-cells">${colLabels}</div></div>
+      ${rows}
+    </div>
+    <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">
+      Cada fila es un paso de la racha (ventana FIFO de hasta ${TH.window} observaciones anomalas). Celda amarilla = parte del
+      grupo coherente en ese paso; celda azul = estaba en la ventana pero no coherente. Se ve como la ventana se desplaza
+      1 frame por paso y se solapa 3-de-4 con el paso anterior (no es un promedio acumulado sin memoria del orden).
+    </div>
+  </div>`;
+}
+
+function renderDetail(c) {
+  document.getElementById("detail").innerHTML = buildDetailHtml(c, currentFrameLocalIdx);
+}
+
+function buildDetailHtml(c, li) {
+  const f = c.frames[li];
+
+  // --- left panel: image + decision ---
+  const bigImg = f.local_path ? `<img src="${f.local_path}" onclick="openLightbox('${f.local_path}')">` : `<div style="padding:60px 0;color:#888;">sin imagen</div>`;
+  const left = `
+  <div class="panel">
+    <h4>Frame seleccionado #${f.frame_idx}</h4>
+    <div id="big-img-wrap">${bigImg}</div>
+    <div style="text-align:center;"><div id="decision-badge" class="badge-${f.decision}">${f.decision.replace(/_/g,' ')}</div></div>
+    <div style="margin-top:14px;">
+      <div class="stat-row"><span class="k">Hora (ts)</span><span class="v">${f.ts_seconds ?? 'N/A'}</span></div>
+      <div class="stat-row"><span class="k">Velocidad</span><span class="v">${fmt(f.speed,1)} km/h</span></div>
+      <div class="stat-row"><span class="k">&Delta;t vs frame anterior</span><span class="v">${f.delta_t ?? 'N/A'} s</span></div>
+      <div class="stat-row"><span class="k">Distancia vs frame anterior</span><span class="v">${fmt(f.prev_frame_dist,3)}</span></div>
+      <div class="stat-row"><span class="k">dist_mem (vs memoria)</span><span class="v">${fmt(f.dist_mem,3)}</span></div>
+      <div class="stat-row"><span class="k">P_fisica</span><span class="v">${fmt(f.p_fisica,3)}</span></div>
+      <div class="stat-row"><span class="k">Tamano memoria actual</span><span class="v">${f.memory_size ?? 'N/A'}</span></div>
+    </div>
+    <div class="stage-flow">
+      <div class="stage ${f.decision==='MISMO_CONDUCTOR'||f.decision==='INICIO_VIAJE' ? 'active':''}">Memoria A</div>
+      <div class="stage-arrow">&rarr;</div>
+      <div class="stage ${f.decision==='POSIBLE_CAMBIO' ? 'active':''}">Candidato B</div>
+      <div class="stage-arrow">&rarr;</div>
+      <div class="stage ${f.decision==='CAMBIO_CONFIRMADO' ? 'active':''}">Confirmacion</div>
+    </div>
+  </div>`;
+
+  // --- memory panel ---
+  const memIdxList = f.memory_frame_idx || [];
+  const memChips = memIdxList.map(idx => memChip(c, idx)).join("");
+  const mb = f.dist_mem_breakdown;
+  const K = f.memory_size ?? memIdxList.length;
+  const sumTerms = memIdxList.map(idx => `e<sub>${idx}</sub>`).join(" + ");
+  const allKs = c.frames.map(x => x.memory_size).filter(v => v !== null && v !== undefined);
+  const minK = allKs.length ? Math.min(...allKs) : null;
+  const maxK = allKs.length ? Math.max(...allKs) : null;
+  const kNote = (minK !== null && minK !== maxK)
+    ? `K no es fijo: en este tramo vario entre <b style="color:#fff;">${minK}</b> y <b style="color:#fff;">${maxK}</b>. Crece de a 1 al inicio del viaje hasta el maximo (6); si hay un CAMBIO_CONFIRMADO, la memoria se reinicia solo con las observaciones coherentes que confirmaron el cambio (puede ser menos de 6), y vuelve a crecer desde ahi.`
+    : `En este tramo K se mantuvo constante en ${maxK ?? '?'} (memoria ya llena, ventana FIFO de tamano fijo).`;
+  const muFormula = memIdxList.length ? `
+    <div class="formula">
+      &mu;<sub>A</sub> = (1/K) &middot; (${sumTerms}) &nbsp;&nbsp;con&nbsp;&nbsp; K = <span class="res">${K}</span>
+    </div>` : `
+    <div style="color:#888;font-size:12.5px;">Memoria vacia: no hay embeddings previos para promediar.</div>`;
+  const memFormula = mb ? `
+    <div class="formula">
+      &mu;<sub>A</sub>&middot;e<sub>t</sub> (producto punto) = <span class="res">${fmt(mb.dot,3)}</span>
+    </div>
+    <div class="formula">
+      ||&mu;<sub>A</sub>|| = <span class="num">${fmt(mb.norm_a,3)}</span> &nbsp;&nbsp; ||e<sub>t</sub>|| = <span class="num">${fmt(mb.norm_b,3)}</span>
+    </div>
+    <div class="formula">
+      cos_sim = (&mu;<sub>A</sub>&middot;e<sub>t</sub>) / (||&mu;<sub>A</sub>|| &middot; ||e<sub>t</sub>||) = ${fmt(mb.dot,3)} / (${fmt(mb.norm_a,3)} &middot; ${fmt(mb.norm_b,3)}) = <span class="res">${fmt(mb.cos_sim,3)}</span>
+    </div>
+    <div class="formula">
+      dist_mem = 1 &minus; cos_sim = 1 &minus; ${fmt(mb.cos_sim,3)} = <span class="res">${fmt(f.dist_mem,3)}</span>
+    </div>` : `
+    <div style="color:#888;font-size:12.5px;">Sin memoria previa: no hay centroide contra el cual comparar.</div>`;
+  const memPanel = `
+  <div class="panel">
+    <h4>Memoria del conductor vigente (en este instante: K=${K ?? '?'} embeddings)</h4>
+    <div class="mem-row">${memChips || '<span style="color:#888;font-size:12px;">sin memoria (inicio de viaje)</span>'}</div>
+    ${muFormula}
+    <div style="font-size:11.5px;color:var(--muted);margin:6px 0 2px;">${kNote}</div>
+    ${memFormula}
+  </div>`;
+
+  // --- candidate window panel (fotos del instante actual) ---
+  let winPanel;
+  if (f.pending_frames && f.pending_frames.length) {
+    const coherentSet = new Set(f.coherent_local || []);
+    const slots = f.pending_frames.map((idx, pli) => winSlot(c, idx, f.pending_dists ? f.pending_dists[pli] : null, coherentSet.has(pli))).join("");
+    const support = f.support ?? 0;
+    winPanel = `
+    <div class="panel">
+      <h4>Ventana candidata en este instante (max ${TH.window} observaciones anomalas)</h4>
+      <div class="window-row">${slots}</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Recuadro amarillo = grupo coherente entre si (distancia par-a-par &lt; ${TH.coherence}). Soporte actual: <b style="color:#fff;">${support}/${TH.support}</b></div>
+    </div>`;
+  } else if (f.decision === 'CAMBIO_CONFIRMADO' && f.candidate_frames) {
+    const coherentFrameSet = new Set(f.coherent_frames || []);
+    const slots = f.candidate_frames.map(idx => winSlot(c, idx, null, coherentFrameSet.has(idx))).join("");
+    winPanel = `
+    <div class="panel">
+      <h4>Ventana candidata que confirmo el cambio</h4>
+      <div class="window-row">${slots}</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Recuadro amarillo = subgrupo coherente usado para confirmar (${(f.coherent_frames||[]).length}/${TH.support} minimo).</div>
+    </div>`;
+  } else {
+    winPanel = `
+    <div class="panel">
+      <h4>Ventana candidata en este instante</h4>
+      <div style="color:#888;font-size:12.5px;">No hay ventana candidata abierta en este frame (dist_mem &lt; 0.50, sigue matcheando la memoria vigente).</div>
+    </div>`;
+  }
+
+  const winEvolutionPanel = buildWindowEvolutionHtml(c, li);
+
+  // --- physics panel ---
+  const pb = f.physics_breakdown;
+  let physPanel;
+  if (pb) {
+    physPanel = `
+    <div class="panel">
+      <h4>Fisica del vehiculo</h4>
+      <div class="formula">v<sub>prev</sub> = ${fmt(f.speed,1)} km/h &divide; 3.6 = <span class="res">${fmt(pb.v_prev,2)} m/s</span></div>
+      <div class="formula">t<sub>frenado</sub> = v<sub>prev</sub> / a<sub>decel</sub> = ${fmt(pb.v_prev,2)} / ${fmt(pb.a_decel,2)} = <span class="res">${fmt(pb.t_frenado,2)} s</span></div>
+      <div class="formula">v<sub>curr</sub> = ${fmt(f.speed,1)} km/h &divide; 3.6 = <span class="res">${fmt(pb.v_curr,2)} m/s</span></div>
+      <div class="formula">t<sub>arranque</sub> = v<sub>curr</sub> / a<sub>accel</sub> = ${fmt(pb.v_curr,2)} / ${fmt(pb.a_accel,2)} = <span class="res">${fmt(pb.t_arranque,2)} s</span></div>
+      <div class="formula">t<sub>maniobra</sub> = <span class="res">${fmt(pb.t_maniobra,1)} s</span> <span style="color:var(--muted);font-size:11px;">(${pb.t_maniobra_reason || ''}, v_max=${fmt(pb.v_max,2)} m/s)</span></div>
+      <div class="formula">t<sub>req</sub> = t<sub>frenado</sub> + t<sub>maniobra</sub> + t<sub>arranque</sub><br>
+        = <span class="num">${fmt(pb.t_frenado,1)}</span> + <span class="num">${fmt(pb.t_maniobra,1)}</span> + <span class="num">${fmt(pb.t_arranque,1)}</span>
+        = <span class="res">${fmt(pb.t_req,1)} s</span></div>
+      <div class="formula">t<sub>sobra</sub> = &Delta;t &minus; t<sub>req</sub> = <span class="num">${f.delta_t}</span> &minus; <span class="num">${fmt(pb.t_req,1)}</span>
+        = <span class="res">${fmt(pb.t_sobra,1)} s</span></div>
+      <div class="formula">P<sub>fisica</sub> = 1 / (1 + e<sup>&minus;0.1&middot;t_sobra</sup>) = 1 / (1 + e<sup>&minus;0.1&middot;${fmt(pb.t_sobra,1)}</sup>) = <span class="res">${fmt(f.p_fisica,3)}</span></div>
+    </div>`;
+  } else {
+    physPanel = `<div class="panel"><h4>Fisica del vehiculo</h4><div style="color:#888;font-size:12.5px;">Primer frame del viaje: no hay frame anterior para calcular &Delta;t.</div></div>`;
+  }
+
+  // --- rule checklist panel ---
+  let rulePanel = "";
+  if (f.pending_frames && f.pending_frames.length) {
+    const support = f.support ?? 0;
+    const avgd = f.avg_dist_vs_old;
+    const rows = [
+      checkRow("dist_mem &ge; 0.50 (candidato)", f.dist_mem, TH.dist_mem, ">="),
+      checkRow(`soporte &ge; ${TH.support} (de ventana ${TH.window})`, support, TH.support, ">="),
+      checkRow("dist. promedio vs memoria vieja &ge; 0.85", avgd, TH.avg_dist, ">="),
+      checkRow("P_fisica &ge; 0.60", f.p_fisica, TH.p_fisica, ">="),
+    ].join("");
+    const allOk = f.decision === 'CAMBIO_CONFIRMADO';
+    rulePanel = `
+    <div class="panel">
+      <h4>Regla evaluada en este frame</h4>
+      ${rows}
+      <div class="final-verdict ${allOk ? 'yes' : 'no'}">${allOk ? 'CAMBIO_CONFIRMADO &#10003;' : 'Aun no confirma &rarr; POSIBLE_CAMBIO'}</div>
+    </div>`;
+  } else if (f.decision === 'CAMBIO_CONFIRMADO') {
+    rulePanel = `
+    <div class="panel">
+      <h4>Regla evaluada en este frame</h4>
+      ${checkRow("dist_mem &ge; 0.50 (candidato)", f.dist_mem, TH.dist_mem, ">=")}
+      ${checkRow(`soporte &ge; ${TH.support} (de ventana ${TH.window})`, (f.coherent_frames||[]).length, TH.support, ">=")}
+      ${checkRow("dist. promedio vs memoria vieja &ge; 0.85", f.avg_dist_vs_old, TH.avg_dist, ">=")}
+      ${checkRow("P_fisica &ge; 0.60", f.p_fisica, TH.p_fisica, ">=")}
+      <div class="final-verdict yes">CAMBIO_CONFIRMADO &#10003;</div>
+    </div>`;
+  } else {
+    rulePanel = `
+    <div class="panel">
+      <h4>Regla evaluada en este frame</h4>
+      <div style="color:#888;font-size:12.5px;">dist_mem = ${fmt(f.dist_mem,3)} &lt; 0.50 &rarr; match directo con la memoria, no se evalua la regla de confirmacion.</div>
+    </div>`;
+  }
+
+  return left + `<div class="right-grid">${memPanel}${winPanel}${winEvolutionPanel}${physPanel}${rulePanel}</div>`;
+}
+
+function openLightbox(src) {
+  document.getElementById("lightbox-img").src = src;
+  document.getElementById("lightbox").classList.add("open");
+}
+function closeLightbox() {
+  document.getElementById("lightbox").classList.remove("open");
+}
+
+// ---------------------------------------------------------------
+// Comparacion directa: ahora es un caso interactivo mas (no una seccion
+// fija al final). Dos columnas independientes, cada una navegable igual
+// que un caso normal.
+// ---------------------------------------------------------------
+function renderComparisonCase(c) {
+  const okCase = findCase(c.leftId);
+  const fpCase = findCase(c.rightId);
+  if (cmpLeftIdx === null) cmpLeftIdx = defaultFrameIdx(okCase);
+  if (cmpRightIdx === null) cmpRightIdx = defaultFrameIdx(fpCase);
+
+  const html = `
+  <div class="case-header">
+    <h2>${c.titulo}</h2>
+    <div class="cmp-intro">
+      Ambos casos cumplen la regla con numeros muy parecidos (dist_mem alto, distancia promedio &ge; 0.85,
+      fisica favorable, 3+ observaciones coherentes). El algoritmo no tiene forma de distinguirlos solo con la cara:
+      la diferencia real esta en pose / iluminacion IR / lentes / angulo de camara, informacion que el embedding
+      facial no logra separar de un cambio de identidad genuino en estos casos limite. Navega cada lado por
+      separado (timeline y frame propios) para comparar el detalle completo.
+    </div>
+  </div>
+  <div class="cmp-grid">
+    <div class="cmp-col ok">
+      <div class="cmp-col-title">CASO CORRECTO (cambio real)</div>
+      ${buildCaseHeaderHtml(okCase, "RESULTADO HUMANO / GT")}
+      <div class="panel chart-wrap"><h4>Evolucion de metricas</h4><div id="cmp-chart-left"></div></div>
+      <div id="cmp-timeline-left" style="overflow-x:auto; padding: 6px 10px;"></div>
+      <div id="cmp-detail-left" class="right-grid" style="margin:8px;"></div>
+    </div>
+    <div class="cmp-col fp">
+      <div class="cmp-col-title">FALSO POSITIVO (misma persona)</div>
+      ${buildCaseHeaderHtml(fpCase, "RESULTADO HUMANO / GT")}
+      <div class="panel chart-wrap"><h4>Evolucion de metricas</h4><div id="cmp-chart-right"></div></div>
+      <div id="cmp-timeline-right" style="overflow-x:auto; padding: 6px 10px;"></div>
+      <div id="cmp-detail-right" class="right-grid" style="margin:8px;"></div>
+    </div>
+  </div>`;
+
+  document.getElementById("case-view").innerHTML = html;
+  renderCmpSide("left", okCase, cmpLeftIdx);
+  renderCmpSide("right", fpCase, cmpRightIdx);
+}
+
+function selectCmpFrame(side, li) {
+  const c = CASES[currentCaseIdx];
+  if (side === "left") { cmpLeftIdx = li; renderCmpSide("left", findCase(c.leftId), li); }
+  else { cmpRightIdx = li; renderCmpSide("right", findCase(c.rightId), li); }
+}
+
+function renderCmpSide(side, caseObj, li) {
+  document.getElementById(`cmp-chart-${side}`).innerHTML = buildMetricsChartHtml(caseObj, li, `selectCmpFrame_${side}`);
+  document.getElementById(`cmp-timeline-${side}`).innerHTML = `<div id="timeline" style="display:flex;gap:8px;">` +
+    buildTimelineHtml(caseObj, li, `selectCmpFrame_${side}`) + `</div>`;
+  document.getElementById(`cmp-detail-${side}`).innerHTML = buildDetailHtml(caseObj, li);
+}
+function selectCmpFrame_left(li) { selectCmpFrame("left", li); }
+function selectCmpFrame_right(li) { selectCmpFrame("right", li); }
+
+renderFlow();
+renderTabs();
+selectCase(0);
+markActiveTab();
+</script>
+</body>
+</html>

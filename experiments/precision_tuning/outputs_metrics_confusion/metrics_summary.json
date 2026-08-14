@@ -1,0 +1,45 @@
+{
+  "config_name": "E_w4_s3_c035_d085_p06",
+  "params": {
+    "candidate_window": 4,
+    "candidate_min_support": 3,
+    "coherence_threshold": 0.35,
+    "min_avg_dist_confirm": 0.85,
+    "min_phys_confirm": 0.6,
+    "memory_size": 6
+  },
+  "n_dev_trips": 1416,
+  "metrics": {
+    "label": "E_w4_s3_c035_d085_p06",
+    "gt_clean": 96,
+    "gt_suspect": 64,
+    "gt_total": 160,
+    "cambio_confirmado_total": 64,
+    "cambio_confirmado_correctos": 24,
+    "cambio_confirmado_incorrectos_fp_estrictos": 40,
+    "posible_cambio_total": 12357,
+    "recall_sin_suspect_cualquier_alerta": 1.0,
+    "recall_con_suspect_cualquier_alerta": 0.8625,
+    "precision_estricta_cambio_confirmado": 0.375,
+    "delay_medio_frames_confirmado": 2.5416666666666665,
+    "delay_max_frames_confirmado": 3,
+    "window_frames": 3
+  },
+  "confusion_por_viaje": {
+    "n_dev_trips": 1416,
+    "trips_with_change": 136,
+    "trips_without_change": 1280,
+    "TP_trips": 24,
+    "FN_trips": 112,
+    "FP_trips": 24,
+    "TN_trips": 1256
+  },
+  "frecuencia_de_error": {
+    "trips_per_fp": 35.4,
+    "hours_per_fp": 298.47990277777774,
+    "fp_per_1000_trips": 28.24858757062147,
+    "changes_per_miss": 0.0,
+    "posible_por_1000_trips": 8726.694915254237,
+    "total_hours_analyzed": 11939.19611111111
+  }
+}
